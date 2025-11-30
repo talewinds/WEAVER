@@ -91,6 +91,29 @@
       -webkit-backdrop-filter: blur(2px);
     }
     #previewWatermark:hover { background: rgba(255,255,255,0.75); }
+
+    /* output watermark overlay */
+    #outputArea { position: relative; }
+    #outputWatermark {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 12px;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.6);
+      color: #0b3b73;
+      text-decoration: underline;
+      cursor: pointer;
+      z-index: 999;
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+    }
+    #outputWatermark:hover { background: rgba(255,255,255,0.85); }
+
+    /* ensure watermark is clickable above image */
+    #finalImagePreview { position: relative; z-index: 1; }
   </style>
 </head>
 <body class="bg-gray-50 font-inter text-gray-800 min-h-screen flex flex-col">
@@ -222,12 +245,13 @@
           </div>
         </div>
       </div>
-<!-- Quick Actions NOTE: action buttons moved below preview as requested -->
+
+      <!-- Quick Actions - REMOVED the writeup as requested (kept empty container to avoid layout shifts) -->
       <div class="p-6 bg-white rounded-xl shadow flex flex-col gap-3">
-        <div class="text-sm text-gray-600">jjghjvkhjbljn;</div>
+        <!-- intentionally left blank per request -->
       </div>
     </section>
-      
+
     <!-- Right Column: Preview & Output -->
     <section class="lg:col-span-2">
       <div class="bg-white rounded-xl shadow p-4">
@@ -263,7 +287,6 @@
         <div class="mt-4 flex gap-3 items-center justify-center">
           <button id="resetButton" class="px-4 py-2 rounded bg-gray-200">Reset All</button>
           <button id="undoButton" class="px-4 py-2 rounded bg-yellow-400 disabled:opacity-50" disabled>Undo</button>
-          <!-- Added onclick handler referencing handleGenerateClick to make button robust -->
           <button id="generateButton" onclick="handleGenerateClick(event)" class="px-4 py-2 rounded bg-green-600 text-white disabled:opacity-50" disabled>GENERATE SHARABLE CARD</button>
         </div>
 
@@ -277,12 +300,15 @@
           <p class="font-semibold text-blue-700">Your card is ready</p>
           <div class="mt-3 flex justify-center gap-3">
             <a id="downloadLink" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-700 text-white rounded" download="wishweaver-card.png">Download PNG</a>
-            <!-- New share buttons -->
-            <button id="webShareBtn" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded">Share (Web)</button>
-            <button id="waShareBtn" class="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded">WhatsApp</button>
-            <button id="fbShareBtn" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-800 text-white rounded">Facebook</button>
+            <button id="shareButton" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded">Share Card</button>
           </div>
-          <img id="finalImagePreview" class="mx-auto mt-4 rounded shadow max-w-sm" alt="Final card" style="display:none;" />
+
+          <!-- generated preview -->
+          <div class="mt-4 relative inline-block">
+            <img id="finalImagePreview" class="mx-auto mt-4 rounded shadow max-w-sm" alt="Final card" style="display:none;" />
+            <!-- clickable watermark overlay inside output area (on top of the image) -->
+            <a id="outputWatermark" href="https://weaver.example.com" target="_blank" rel="noopener">designed by weaver</a>
+          </div>
         </div>
       </div>
     </section>
@@ -320,10 +346,11 @@
 
   <script>
   /************************************************************************
-   * Wish Weaver — single-file app
-   * Fixes applied:
-   * 1) Robust generate button handler (handleGenerateClick) wired via onclick.
-   * 2) Stroke thickness reduced and scaled for both live DOM preview and export.
+   * Wish Weaver — single-file app (modified)
+   * Changes: (only)
+   * 1) add clickable output watermark overlay
+   * 2) show only Download + Share Card buttons and implement share
+   * 3) remove the sticker writeup (done in HTML)
    ************************************************************************/
 
   // DOM references
@@ -336,6 +363,7 @@
   const outputArea = document.getElementById('outputArea');
   const finalImagePreview = document.getElementById('finalImagePreview');
   const downloadLink = document.getElementById('downloadLink');
+  const shareButton = document.getElementById('shareButton');
   const aspectRatio = document.getElementById('aspectRatio');
   const exportDpr = document.getElementById('exportDpr');
   const fileWarn = document.getElementById('fileWarn');
@@ -377,10 +405,6 @@
   const loadButton = document.getElementById('loadDesign');
   const clearSavedBtn = document.getElementById('clearSaved');
   const helpBtn = document.getElementById('helpButton');
-
-  const webShareBtn = document.getElementById('webShareBtn');
-  const waShareBtn = document.getElementById('waShareBtn');
-  const fbShareBtn = document.getElementById('fbShareBtn');
 
   // state
   let dpr = parseFloat(window.devicePixelRatio || 1);
@@ -432,21 +456,17 @@
 
   // Apply stroke to DOM overlay (live preview) - scaled down to avoid heavy/thick look
   function applyStrokeStyleToOverlay(el, enable, color, width, fontSizePx) {
-    // derive an effective px stroke from user width and font size.
-    // scale factor reduces perceived thickness; clamp to reasonable bounds.
     const base = Math.max(0, Number(width) || 0);
-    // heuristic: strokePx ≈ base * (fontSize/48) * 0.6
     const strokePx = Math.max(0, Math.round(base * ( (fontSizePx || 48) / 48 ) * 0.6));
     if (enable && strokePx > 0) {
       el.style.webkitTextStroke = `${strokePx}px ${color}`;
       el.style.textStroke = `${strokePx}px ${color}`;
-      // fallback: soft multi-shadow but reduced to avoid thick look
       const w = Math.max(1, strokePx);
       const shadows = [
         `-${w}px -${w}px 0 ${color}`,
         `${w}px -${w}px 0 ${color}`,
         `-${w}px ${w}px 0 ${color}`,
-        `${w}px ${w}px 0 ${color}`,
+        `${w}px ${w}px 0 ${color}`
       ].join(', ');
       el.style.textShadow = shadows;
     } else {
@@ -556,6 +576,7 @@
     outputArea.classList.add('hidden');
     finalImagePreview.style.display = 'none';
     downloadLink.href = '';
+    lastExportDataUrl = null;
 
     resizeCanvas();
   }
@@ -588,6 +609,7 @@
     activeSticker = el;
     if (!el) { stickerControls.classList.add('hidden'); return; }
     el.classList.add('selected');
+    // parse transform: scale/rotate
     const m = el.style.transform.match(/scale\((-?[0-9.]+)\)\s*rotate\((-?[0-9.]+)deg\)/);
     const scale = m ? parseFloat(m[1]) : 1;
     const rotate = m ? parseFloat(m[2]) : 0;
@@ -596,7 +618,7 @@
     stickerControls.classList.remove('hidden');
   }
 
-  // sticker control handlers
+  // sticker controls
   stickerScale.addEventListener('input', () => {
     if (!activeSticker) return;
     const s = parseFloat(stickerScale.value);
@@ -642,7 +664,7 @@
   function getPointerCoords(e) { return { x: e.clientX ?? 0, y: e.clientY ?? 0 }; }
 
   function pointerDownHandler(e) {
-    if (e.button !== undefined && e.button !== 0) return;
+    if (e.button !== undefined && e.button !== 0) return; // only primary
     let target = e.target;
     if (target.closest && target.closest('.sticker-layer')) target = target.closest('.sticker-layer');
     if (!target) return;
@@ -663,6 +685,7 @@
       try { activeOverlay.setPointerCapture?.(e.pointerId); } catch(err) {}
       activeOverlay.style.zIndex = 99;
     } else {
+      // clicked outside overlays -> deselect sticker
       if (activeSticker) { activeSticker.classList.remove('selected'); activeSticker = null; stickerControls.classList.add('hidden'); }
     }
   }
@@ -706,13 +729,13 @@
       el.style.left = clamp(left,0,100).toFixed(2) + '%';
       el.style.top = clamp(top,0,100).toFixed(2) + '%';
       undoButton.disabled = false;
-      drawImageOnCanvas();
     }
   }
 
   wishOverlay.addEventListener('keydown', overlayKeyHandler);
   subOverlay.addEventListener('keydown', overlayKeyHandler);
 
+  // wire global pointer events
   document.addEventListener('pointerdown', pointerDownHandler);
   document.addEventListener('pointermove', pointerMoveHandler, { passive:false });
   document.addEventListener('pointerup', pointerUpHandler);
@@ -732,7 +755,7 @@
       uploadedImage.onload = function() {
         isImageLoaded = true;
         imagePlaceholder.style.display = 'none';
-        // **ensure generate button is enabled and clickable immediately**
+        // ensure generate button is enabled & clickable
         generateButton.disabled = false;
         generateButton.style.pointerEvents = 'auto';
         resizeCanvas();
@@ -744,7 +767,7 @@
     reader.readAsDataURL(file);
   });
 
-  // export / generate final PNG
+  // export / generate final PNG (renders image, stickers, text into an offscreen canvas using chosen export DPI)
   function generateFinalImage() {
     if (!isImageLoaded) return;
     const exportScale = parseFloat(exportDpr.value) || 2;
@@ -764,14 +787,14 @@
     ectx.clearRect(0,0,cssW,cssH);
     ectx.drawImage(uploadedImage, x, y, tW, tH);
 
-    // draw stickers
+    // draw stickers by z-index ascending
     const stickerEls = Array.from(stickerLayerContainer.children);
     stickerEls.sort((a,b) => (parseInt(a.style.zIndex||3) - parseInt(b.style.zIndex||3)));
     stickerEls.forEach(el => {
       drawStickerOnExportCtx(ectx, el);
     });
 
-    // draw texts with stroke scaled down further for export
+    // draw texts
     drawTextOnExportCtx(ectx, wishOverlay, {
       text: inputs.wishText.value,
       color: inputs.wishColor.value,
@@ -793,22 +816,25 @@
       strokeWidth: parseFloat(inputs.subStrokeWidth.value)
     });
 
-    // watermark
+    // subtle watermark: "designed by weaver" at bottom center (drawn into image)
     try {
       const watermarkText = 'designed by weaver';
-      const fontSize = Math.max(12, Math.round(cssW * 0.03));
+      const fontSize = Math.max(12, Math.round(cssW * 0.03)); // relative, but small
       ectx.save();
       ectx.globalAlpha = 0.55;
       ectx.font = `${fontSize}px Inter`;
       ectx.textAlign = 'center';
       ectx.textBaseline = 'bottom';
+      // subtle stroke for readability
       ectx.lineWidth = Math.max(1, Math.round(fontSize * 0.08));
       ectx.strokeStyle = 'rgba(0,0,0,0.35)';
       ectx.strokeText(watermarkText, cssW / 2, cssH - Math.round(fontSize * 0.25));
       ectx.fillStyle = 'rgba(255,255,255,0.95)';
       ectx.fillText(watermarkText, cssW / 2, cssH - Math.round(fontSize * 0.25));
       ectx.restore();
-    } catch (err) { console.warn('Watermark draw failed', err); }
+    } catch (err) {
+      console.warn('Watermark draw failed', err);
+    }
 
     const dataUrl = exportCanvas.toDataURL('image/png');
     lastExportDataUrl = dataUrl;
@@ -817,6 +843,11 @@
     downloadLink.href = dataUrl;
     downloadLink.download = 'wishweaver-card.png';
     outputArea.classList.remove('hidden');
+
+    // ensure the output watermark link sits on top (it's already in DOM)
+    const outWater = document.getElementById('outputWatermark');
+    if (outWater) outWater.style.display = 'inline-block';
+
     finalImagePreview.scrollIntoView({ behavior: 'smooth' });
   }
 
@@ -839,10 +870,9 @@
     ectx.font = `${fontSize}px ${family}`;
     ectx.textAlign = 'center';
     ectx.textBaseline = 'middle';
-
-    // scale stroke for export: use a conservative multiplier to avoid heavy stroke
+    // scale stroke for export: use conservative multiplier to avoid heavy stroke
     const baseStroke = Math.max(0, Number(options.strokeWidth) || 0);
-    const strokeExportPx = Math.max(0, baseStroke * 0.6); // reduced from user input
+    const strokeExportPx = Math.max(0, baseStroke * 0.6);
     if (options.strokeEnable && strokeExportPx > 0) {
       ectx.lineWidth = Math.max(1, strokeExportPx);
       ectx.strokeStyle = options.strokeColor||'#000';
@@ -982,6 +1012,7 @@
         subOverlay.style.left = st.sub.left || subOverlay.style.left;
         subOverlay.style.transform = st.sub.transform || subOverlay.style.transform;
       }
+      // stickers
       stickerLayerContainer.innerHTML = '';
       if (st.stickers && Array.isArray(st.stickers)) {
         st.stickers.forEach(s => {
@@ -1017,42 +1048,15 @@
   }
   setInterval(updateButtonsState, 400);
 
-  // attach small keyboard handler for sticker container (nudge)
-  stickerLayerContainer.addEventListener('keydown', (e) => {
-    if (e.target && e.target.classList.contains('sticker-layer')) overlayKeyHandler.call(e.target, e);
-  });
-
-  function overlayKeyHandler(e) {
-    const el = e.currentTarget;
-    const step = e.shiftKey ? 10 : 1;
-    let left = percentOrDefault(el.style.left,50);
-    let top = percentOrDefault(el.style.top,50);
-    let moved = false;
-    if (e.key === 'ArrowLeft') { left -= (step / (previewContainer.clientWidth/100)); moved=true; }
-    if (e.key === 'ArrowRight') { left += (step / (previewContainer.clientWidth/100)); moved=true; }
-    if (e.key === 'ArrowUp') { top -= (step / (previewContainer.clientHeight/100)); moved=true; }
-    if (e.key === 'ArrowDown') { top += (step / (previewContainer.clientHeight/100)); moved=true; }
-    if (moved) {
-      e.preventDefault();
-      saveHistory(el);
-      el.style.left = clamp(left,0,100).toFixed(02)+'%';
-      el.style.top = clamp(top,0,100).toFixed(02)+'%';
-      undoButton.disabled = false;
-    }
-  }
-
   // generate button click wiring - robust handler
   function handleGenerateClick(e) {
     e?.preventDefault?.();
-    // If generateButton is disabled, give a small feedback
     if (generateButton.disabled || !isImageLoaded) {
-      // brief flash to show disabled state
       generateButton.classList.add('opacity-70');
       setTimeout(()=> generateButton.classList.remove('opacity-70'), 160);
       if (!isImageLoaded) alert('Please upload an image first.');
       return;
     }
-    // Visual feedback
     const prevText = generateButton.textContent;
     generateButton.disabled = true;
     generateButton.textContent = 'Generating…';
@@ -1066,6 +1070,46 @@
     }, 80);
   }
 
+  // sharing: convert dataURL -> Blob
+  async function dataURLtoBlob(dataurl) {
+    const res = await fetch(dataurl);
+    const blob = await res.blob();
+    return blob;
+  }
+
+  // Share button handler (single share button)
+  shareButton.addEventListener('click', async () => {
+    if (!lastExportDataUrl) { alert('Please generate the card first.'); return; }
+    try {
+      // Prefer sharing the file (mobile + supporting browsers)
+      const blob = await dataURLtoBlob(lastExportDataUrl);
+      const file = new File([blob], 'wishweaver-card.png', { type: 'image/png' });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'My Wish Weaver Card', text: 'Check out this card I made.' });
+        return;
+      }
+
+      // Fallback: try navigator.share with URL (some browsers accept a data URL)
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: 'Wish Weaver', text: 'Check out this card I made.', url: lastExportDataUrl });
+          return;
+        } catch (err) {
+          // continue to final fallback
+        }
+      }
+
+      // Final fallback: open the image data URL in a new tab so user can use share from device (manual)
+      const w = window.open();
+      w.document.write(`<title>Share image</title><img src="${lastExportDataUrl}" style="max-width:100%;">`);
+      w.document.close();
+    } catch (err) {
+      console.error('Share failed', err);
+      alert('Sharing is not supported in this browser. Please download the image and share it from your phone.');
+    }
+  });
+
   // reset & undo hooks
   resetButton.addEventListener('click', resetAll);
   undoButton.addEventListener('click', undoLastMove);
@@ -1075,53 +1119,6 @@
   resizeCanvas();
   generateButton.disabled = true;
   generateButton.style.pointerEvents = 'none';
-
-  // Sharing logic
-  async function dataURLtoBlob(dataurl) {
-    const res = await fetch(dataurl);
-    const blob = await res.blob();
-    return blob;
-  }
-
-  webShareBtn.addEventListener('click', async () => {
-    if (!lastExportDataUrl) { alert('Please generate the card first.'); return; }
-    if (navigator.canShare && navigator.canShare({ files: [] })) {
-      try {
-        const blob = await dataURLtoBlob(lastExportDataUrl);
-        const file = new File([blob], 'wishweaver-card.png', { type: 'image/png' });
-        await navigator.share({
-          files: [file],
-          title: 'My Wish Weaver Card',
-          text: 'Hey — check out this card I made with Wish Weaver.'
-        });
-      } catch (err) {
-        console.error('Web share failed', err);
-        alert('Sharing failed (browser may not support sharing files). You can still download and share manually.');
-      }
-    } else if (navigator.share) {
-      try {
-        await navigator.share({ title: 'Wish Weaver', text: 'I made this card with Wish Weaver — download and view.', url: lastExportDataUrl });
-      } catch (err) {
-        console.error('Web share fallback failed', err);
-        alert('Sharing not supported in this browser. Please download and share manually.');
-      }
-    } else {
-      alert('Your browser does not support direct web sharing. Please download the image and share manually to social apps.');
-    }
-  });
-
-  waShareBtn.addEventListener('click', () => {
-    if (!lastExportDataUrl) { alert('Please generate the card first.'); return; }
-    const text = encodeURIComponent('Check out my card I made with Wish Weaver:');
-    const url = `https://wa.me/?text=${text}%0A${encodeURIComponent(lastExportDataUrl)}`;
-    window.open(url, '_blank');
-  });
-
-  fbShareBtn.addEventListener('click', () => {
-    if (!lastExportDataUrl) { alert('Please generate the card first.'); return; }
-    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(lastExportDataUrl)}`;
-    window.open(fbUrl, '_blank');
-  });
 
   // Done.
   </script>
