@@ -1,568 +1,876 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wish Weaver - Digital Card Creator</title>
-    <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Oswald:wght@400;700&family=Caveat:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        /* Define custom fonts for easy switching */
-        .font-inter { font-family: 'Inter', sans-serif; }
-        .font-oswald { font-family: 'Oswald', sans-serif; }
-        .font-caveat { font-family: 'Caveat', cursive; }
-        .font-mono { font-family: 'Roboto Mono', monospace; }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wish Weaver — Digital Card Creator</title>
 
-        /* Custom scrollbar for better aesthetics */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f0f4f8; }
-        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Oswald:wght@400;700&family=Caveat:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
 
-        /* Styles for the draggable text overlays */
-        .draggable-text {
-            position: absolute;
-            cursor: grab;
-            user-select: none;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Enhance visibility */
-            padding: 4px 8px;
-            border: 2px dashed rgba(255, 255, 255, 0.5);
-            transform: translate(-50%, -50%); /* Center the element on its defined position */
-            transition: opacity 0.3s;
-            max-width: 90%;
-            overflow-wrap: break-word;
-        }
+  <style>
+    /* --- fonts for HTML overlays --- */
+    .font-inter { font-family: 'Inter', sans-serif; }
+    .font-oswald { font-family: 'Oswald', sans-serif; }
+    .font-caveat { font-family: 'Caveat', cursive; }
+    .font-mono { font-family: 'Roboto Mono', monospace; }
 
-        .draggable-text:active {
-            cursor: grabbing;
-        }
-        
-        /* AdSense Simulation Styles */
-        .adsense-placeholder {
-            min-height: 90px;
-            border: 2px dashed #34d399;
-            background-color: #e0fcf4;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #065f46;
-            font-weight: bold;
-            text-align: center;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-    </style>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'primary-blue': '#1e40af',
-                        'secondary-green': '#059669',
-                        'accent-yellow': '#facc15',
-                        'background-light': '#f8fafc',
-                    },
-                }
-            }
-        }
-    </script>
+    /* draggable overlay */
+    .draggable-text {
+      position: absolute;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.45);
+      padding: 6px 10px;
+      border: 2px dashed rgba(255,255,255,0.5);
+      transform: translate(-50%, -50%); /* center on the point */
+      transition: opacity 0.15s, transform 0.1s;
+      max-width: 90%;
+      overflow-wrap: break-word;
+      z-index: 1;
+      touch-action: none; /* important to avoid scrolling while dragging */
+    }
+    .draggable-text:active { cursor: grabbing; }
+
+    /* preview container */
+    #previewContainer { touch-action: none; }
+
+    /* subtle focus outline for keyboard users */
+    .draggable-text:focus { outline: 2px dashed rgba(30,64,175,0.85); outline-offset: 6px; }
+
+    /* custom scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+    ::-webkit-scrollbar-track { background: #f0f4f8; }
+  </style>
 </head>
-<body class="bg-background-light font-inter text-gray-800 antialiased min-h-screen flex flex-col">
+<body class="bg-gray-50 font-inter text-gray-800 min-h-screen flex flex-col">
 
-    <!-- Header -->
-    <header class="bg-primary-blue shadow-lg">
-        <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-            <h1 class="text-3xl font-bold text-white tracking-wider">
-                <span class="text-accent-yellow">W</span>ish <span class="text-accent-yellow">W</span>eaver
-            </h1>
-            <button id="helpButton" class="bg-accent-yellow text-primary-blue font-semibold py-2 px-4 rounded-full transition duration-300 hover:bg-yellow-300 shadow-md">
-                How to Use
-            </button>
+  <!-- Header -->
+  <header class="bg-blue-900 text-white">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <h1 class="text-2xl font-bold"><span class="text-yellow-300">W</span>ish <span class="text-yellow-300">W</span>eaver</h1>
+      <div class="flex items-center gap-3">
+        <button id="helpButton" class="bg-yellow-300 text-blue-900 px-3 py-2 rounded-full font-semibold">How to Use</button>
+        <button id="saveDesign" class="bg-emerald-500 text-white px-3 py-2 rounded-md">Save</button>
+        <button id="loadDesign" class="bg-gray-200 text-gray-800 px-3 py-2 rounded-md">Load</button>
+        <button id="clearSaved" class="bg-red-100 text-red-700 px-3 py-2 rounded-md">Clear Saved</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="max-w-6xl mx-auto w-full flex-grow grid lg:grid-cols-3 gap-8 p-6">
+
+    <!-- Left controls -->
+    <section class="lg:col-span-1 space-y-6">
+      <div class="p-6 bg-white rounded-xl shadow">
+        <h2 class="font-bold text-lg text-blue-800 mb-3">1. Choose Canvas</h2>
+        <input id="imageUpload" type="file" accept="image/*" aria-label="Upload image" class="w-full text-sm" />
+        <p id="fileWarn" class="text-sm text-red-600 mt-2 hidden"></p>
+        <div class="mt-4">
+          <label class="block text-sm mb-1">Aspect Ratio</label>
+          <select id="aspectRatio" class="w-full p-2 rounded border">
+            <option value="1:1">Square — 1:1</option>
+            <option value="4:5">Portrait — 4:5 (Instagram)</option>
+            <option value="9:16">Story — 9:16</option>
+          </select>
         </div>
-    </header>
-
-    <!-- Main Content Grid -->
-    <main class="max-w-7xl mx-auto w-full flex-grow p-4 lg:p-8 grid lg:grid-cols-3 gap-8">
-        
-        <!-- Left Column: Controls and AdSense -->
-        <section class="lg:col-span-1 space-y-6">
-
-            <!-- AdSense Placeholder Top -->
-            <div class="adsense-placeholder h-24">
-                [ AdSense Ad - 300x250 or Leaderboard ]
-            </div>
-
-            <!-- Image Uploader -->
-            <div class="bg-white p-6 rounded-xl shadow-2xl border border-gray-100">
-                <h2 class="text-xl font-bold mb-4 text-primary-blue">1. Choose Your Canvas</h2>
-                <input type="file" id="imageUpload" accept="image/*" class="w-full text-sm text-gray-700
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-full file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-secondary-green file:text-white
-                    hover:file:bg-emerald-600 transition duration-150
-                "/>
-            </div>
-
-            <!-- Text Customization -->
-            <div id="customizationPanel" class="bg-white p-6 rounded-xl shadow-2xl border border-gray-100 space-y-6">
-                <h2 class="text-xl font-bold text-primary-blue">2. Customize Your Message</h2>
-                
-                <!-- Main Wish Statement -->
-                <div>
-                    <label for="wishText" class="block text-sm font-medium text-gray-700 mb-1">Main Wish Statement (e.g., Happy Birthday!)</label>
-                    <input type="text" id="wishText" maxlength="100" placeholder="Enter your main wish here" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-primary-blue focus:ring-primary-blue p-2" value="Happy Moments!" />
-                    <div class="flex space-x-2 mt-2">
-                        <input type="color" id="wishColor" value="#ffffff" title="Text Color" class="w-8 h-8 rounded-full border-2 border-gray-300 cursor-pointer">
-                        <input type="number" id="wishSize" min="20" max="100" value="48" title="Font Size" class="w-16 border-gray-300 rounded-lg p-1 text-center text-sm">
-                        <select id="wishFont" class="flex-grow border-gray-300 rounded-lg text-sm p-1">
-                            <option value="font-oswald" class="font-oswald">Oswald (Bold)</option>
-                            <option value="font-caveat" class="font-caveat">Caveat (Cursive)</option>
-                            <option value="font-inter" class="font-inter">Inter (Modern)</option>
-                            <option value="font-mono" class="font-mono">Roboto Mono (Typewriter)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Sub-Text -->
-                <div>
-                    <label for="subText" class="block text-sm font-medium text-gray-700 mb-1">Sub-Text (Max 20 words)</label>
-                    <textarea id="subText" maxlength="120" rows="2" placeholder="A small message (max 20 words)" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-primary-blue focus:ring-primary-blue p-2">Wishing you a wonderful day filled with joy and laughter!</textarea>
-                    <div class="flex space-x-2 mt-2">
-                        <input type="color" id="subColor" value="#facc15" title="Text Color" class="w-8 h-8 rounded-full border-2 border-gray-300 cursor-pointer">
-                        <input type="number" id="subSize" min="12" max="50" value="20" title="Font Size" class="w-16 border-gray-300 rounded-lg p-1 text-center text-sm">
-                        <select id="subFont" class="flex-grow border-gray-300 rounded-lg text-sm p-1">
-                            <option value="font-inter" class="font-inter">Inter (Modern)</option>
-                            <option value="font-oswald" class="font-oswald">Oswald (Bold)</option>
-                            <option value="font-caveat" class="font-caveat">Caveat (Cursive)</option>
-                            <option value="font-mono" class="font-mono">Roboto Mono (Typewriter)</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- AdSense Placeholder Bottom -->
-            <div class="adsense-placeholder h-32">
-                [ AdSense Ad - Large Rectangle ]
-            </div>
-
-        </section>
-
-        <!-- Right Column: Card Preview and Output -->
-        <section class="lg:col-span-2 space-y-6">
-            <div class="bg-white p-4 sm:p-6 rounded-xl shadow-2xl border border-gray-100">
-                <h2 class="text-xl font-bold mb-4 text-secondary-green">3. Live Preview & Positioning</h2>
-                <div id="previewContainer" class="relative w-full aspect-square max-w-2xl mx-auto overflow-hidden rounded-lg shadow-inner bg-gray-200 border-4 border-primary-blue">
-                    <canvas id="cardCanvas" class="w-full h-full"></canvas>
-                    
-                    <!-- Draggable HTML Overlays (Used for editing) -->
-                    <div id="wishOverlay" class="draggable-text font-oswald text-white text-5xl" style="top: 25%; left: 50%;">Happy Moments!</div>
-                    <div id="subOverlay" class="draggable-text font-inter text-accent-yellow text-xl" style="top: 80%; left: 50%;">Wishing you a wonderful day filled with joy and laughter!</div>
-                    
-                    <!-- Initial Placeholder for the image -->
-                    <div id="imagePlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500 pointer-events-none">
-                        <svg class="w-16 h-16 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        <p class="text-lg font-semibold">Upload an image to start designing</p>
-                    </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="mt-6 flex justify-center space-x-4">
-                    <button id="processButton" class="flex-1 max-w-xs bg-secondary-green text-white font-bold py-3 px-6 rounded-full text-lg shadow-lg hover:bg-emerald-600 transition duration-300 transform hover:scale-105" disabled>
-                        4. Generate Shareable Card
-                    </button>
-                </div>
-                
-                <!-- Share Output Area -->
-                <div id="outputArea" class="mt-6 hidden bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <p class="text-center font-semibold text-lg text-primary-blue mb-3">Your Card is Ready!</p>
-                    <div class="flex justify-center space-x-3 mb-4">
-                        <a id="downloadLink" download="wishweaver-card.png" class="flex items-center space-x-2 bg-primary-blue text-white py-2 px-4 rounded-full hover:bg-blue-700 transition duration-150">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            <span>Download PNG</span>
-                        </a>
-                    </div>
-                    <p class="text-center text-sm text-gray-500">
-                        Right-click (or long-press on mobile) the card below to save or share directly.
-                    </p>
-                    <img id="finalImagePreview" class="mt-4 w-full h-auto rounded-lg shadow-xl border border-gray-300 mx-auto max-w-sm" style="display: none;" alt="Final Generated Card">
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Footer Content (SEO and Privacy) -->
-    <footer class="bg-gray-100 mt-8 py-8 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-7xl mx-auto grid md:grid-cols-3 gap-8 text-sm text-gray-600">
-            
-            <!-- Web App Write-up (SEO) -->
-            <div>
-                <h3 class="font-bold text-base text-primary-blue mb-2">About Wish Weaver</h3>
-                <p>
-                    Wish Weaver is the fastest, free digital card creator online. Effortlessly combine your favorite photos with personalized wish statements, invitation text, or festive greetings. Customize every detail, from font color and size to placement. Perfect for creating unique, shareable content for social media—be it a birthday wish, a holiday card, or a simple invite. Create, download, and share your masterpiece instantly without any sign-up or data storage.
-                </p>
-            </div>
-
-            <!-- Privacy Declaration -->
-            <div>
-                <h3 class="font-bold text-base text-primary-blue mb-2">Privacy Declaration</h3>
-                <p>
-                    **We value your privacy completely.** Wish Weaver operates entirely within your browser. **No images, text, or personal data are uploaded to our servers.** Your designs are processed locally, and the final card is generated directly for download. We do not require registration or store any usage data.
-                </p>
-                <div class="adsense-placeholder mt-4 h-16">
-                    [ AdSense Ad - Text Link or Vertical Banner ]
-                </div>
-            </div>
-
-            <!-- Features Summary -->
-            <div>
-                <h3 class="font-bold text-base text-primary-blue mb-2">Key Features</h3>
-                <ul class="list-disc list-inside space-y-1">
-                    <li>Single-file image upload (JPG, PNG, GIF).</li>
-                    <li>Drag-and-drop text positioning on canvas.</li>
-                    <li>Full customization of font, color, and size.</li>
-                    <li>Automatic image fitting (crop-to-fit/center).</li>
-                    <li>Instant, shareable PNG output.</li>
-                    <li>100% privacy guarantee (no data stored).</li>
-                </ul>
-            </div>
+        <div class="mt-4">
+          <label class="block text-sm mb-1">Export DPI (device pixels)</label>
+          <select id="exportDpr" class="w-full p-2 rounded border">
+            <option value="1">1x (normal)</option>
+            <option value="2" selected>2x (retina)</option>
+            <option value="3">3x (very high)</option>
+          </select>
         </div>
-        <div class="text-center mt-8 text-xs text-gray-400">
-            &copy; 2025 Wish Weaver. All rights reserved.
+      </div>
+
+      <!-- Text customization -->
+      <div class="p-6 bg-white rounded-xl shadow space-y-4">
+        <h2 class="font-bold text-lg text-blue-800">2. Customize Text</h2>
+
+        <!-- Main wish -->
+        <div>
+          <label class="text-sm block mb-1">Main Wish</label>
+          <input id="wishText" class="w-full p-2 border rounded" maxlength="100" value="Happy Moments!" />
+          <div class="flex items-center gap-2 mt-2">
+            <input id="wishColor" type="color" value="#ffffff" title="Wish color" />
+            <input id="wishSize" type="number" min="14" max="200" value="48" class="w-20 p-1 border rounded text-center" title="Font size" />
+            <select id="wishFont" class="flex-1 p-1 border rounded">
+              <option value="font-oswald">Oswald (Bold)</option>
+              <option value="font-caveat">Caveat (Cursive)</option>
+              <option value="font-inter" selected>Inter (Modern)</option>
+              <option value="font-mono">Roboto Mono</option>
+            </select>
+          </div>
+
+          <div class="mt-2 flex items-center gap-2 text-sm">
+            <label class="flex items-center gap-1"><input id="wishStrokeEnable" type="checkbox" /> Stroke</label>
+            <input id="wishStrokeColor" type="color" value="#000000" title="Stroke color" />
+            <input id="wishStrokeWidth" type="number" min="0" max="20" value="2" class="w-20 p-1 border rounded text-center" />
+            <label class="ml-auto text-xs text-gray-500">Rotate:</label>
+            <input id="wishRotate" type="range" min="-180" max="180" value="0" class="w-32" />
+          </div>
         </div>
-    </footer>
 
-    <script>
-        const canvas = document.getElementById('cardCanvas');
-        const ctx = canvas.getContext('2d');
-        const imageUpload = document.getElementById('imageUpload');
-        const previewContainer = document.getElementById('previewContainer');
-        const imagePlaceholder = document.getElementById('imagePlaceholder');
-        const processButton = document.getElementById('processButton');
-        const outputArea = document.getElementById('outputArea');
-        const downloadLink = document.getElementById('downloadLink');
-        const finalImagePreview = document.getElementById('finalImagePreview');
+        <!-- Sub text -->
+        <div>
+          <label class="text-sm block mb-1">Sub Text (max 20 words)</label>
+          <textarea id="subText" class="w-full p-2 border rounded" rows="2">Wishing you a wonderful day filled with joy and laughter!</textarea>
+          <div class="flex items-center gap-2 mt-2">
+            <input id="subColor" type="color" value="#facc15" />
+            <input id="subSize" type="number" min="10" max="120" value="20" class="w-20 p-1 border rounded text-center" />
+            <select id="subFont" class="flex-1 p-1 border rounded">
+              <option value="font-inter">Inter</option>
+              <option value="font-oswald">Oswald</option>
+              <option value="font-caveat">Caveat</option>
+              <option value="font-mono">Roboto Mono</option>
+            </select>
+          </div>
+          <div class="mt-2 flex items-center gap-2 text-sm">
+            <label class="flex items-center gap-1"><input id="subStrokeEnable" type="checkbox" /> Stroke</label>
+            <input id="subStrokeColor" type="color" value="#000000" />
+            <input id="subStrokeWidth" type="number" min="0" max="20" value="1" class="w-20 p-1 border rounded text-center" />
+            <label class="ml-auto text-xs text-gray-500">Rotate:</label>
+            <input id="subRotate" type="range" min="-180" max="180" value="0" class="w-32" />
+          </div>
+        </div>
 
-        // Text Overlays (Draggable HTML elements)
-        const wishOverlay = document.getElementById('wishOverlay');
-        const subOverlay = document.getElementById('subOverlay');
+      </div>
 
-        // Customization Inputs
-        const inputs = {
-            wishText: document.getElementById('wishText'),
-            wishColor: document.getElementById('wishColor'),
-            wishSize: document.getElementById('wishSize'),
-            wishFont: document.getElementById('wishFont'),
-            subText: document.getElementById('subText'),
-            subColor: document.getElementById('subColor'),
-            subSize: document.getElementById('subSize'),
-            subFont: document.getElementById('subFont'),
+      <!-- quick actions -->
+      <div class="p-6 bg-white rounded-xl shadow flex flex-col gap-3">
+        <button id="resetButton" class="px-4 py-2 rounded bg-gray-200">Reset All</button>
+        <div class="flex gap-2">
+          <button id="undoButton" class="flex-1 px-4 py-2 rounded bg-yellow-400 disabled:opacity-50" disabled>Undo Move</button>
+          <button id="processButton" class="flex-1 px-4 py-2 rounded bg-green-600 text-white disabled:opacity-50" disabled>Generate PNG</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: preview -->
+    <section class="lg:col-span-2">
+      <div class="bg-white rounded-xl shadow p-4">
+        <h2 class="font-bold text-lg text-green-700 mb-3">3. Live Preview</h2>
+
+        <div id="previewContainer" class="relative mx-auto overflow-hidden rounded-lg bg-gray-200 border-4 border-blue-800 max-w-2xl"
+             style="aspect-ratio: 1 / 1; width:100%;">
+          <canvas id="cardCanvas" class="w-full h-full"></canvas>
+
+          <!-- Draggable overlays -->
+          <div id="wishOverlay" class="draggable-text font-oswald text-white" tabindex="0"
+               style="top:25%; left:50%; font-size:48px; transform: translate(-50%, -50%) rotate(0deg);">
+            Happy Moments!
+          </div>
+
+          <div id="subOverlay" class="draggable-text font-inter text-yellow-300" tabindex="0"
+               style="top:80%; left:50%; font-size:20px; transform: translate(-50%, -50%) rotate(0deg);">
+            Wishing you a wonderful day filled with joy and laughter!
+          </div>
+
+          <div id="imagePlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500 pointer-events-none">
+            <svg class="w-16 h-16 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 003-2V6a2 2 0 00-2-2H6"></path></svg>
+            <p class="text-lg font-semibold">Upload an image to start</p>
+          </div>
+        </div>
+
+        <!-- Output -->
+        <div id="outputArea" class="mt-6 hidden bg-gray-50 p-4 rounded text-center">
+          <p class="font-semibold text-blue-700">Your card is ready</p>
+          <div class="mt-3">
+            <a id="downloadLink" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-700 text-white rounded" download="wishweaver-card.png">Download PNG</a>
+          </div>
+          <img id="finalImagePreview" class="mx-auto mt-4 rounded shadow max-w-sm" alt="Final card" style="display:none;" />
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="text-center text-xs text-gray-500 py-6">
+    &copy; 2025 Wish Weaver — Local, Private, Fast
+  </footer>
+
+  <!-- SCRIPT -->
+  <script>
+    /*****************************************************************
+     * Wish Weaver - Single file updated build
+     * - Robust DPR handling using ctx.setTransform(dpr,0,0,dpr,0,0)
+     * - Pointer events for drag
+     * - Rotate + stroke controls
+     * - Undo (move), Reset
+     * - Save / Load from localStorage (image dataURL + overlays + inputs)
+     *****************************************************************/
+
+    // Elements
+    const canvas = document.getElementById('cardCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const previewContainer = document.getElementById('previewContainer');
+    const imageUpload = document.getElementById('imageUpload');
+    const imagePlaceholder = document.getElementById('imagePlaceholder');
+    const processButton = document.getElementById('processButton');
+    const outputArea = document.getElementById('outputArea');
+    const finalImagePreview = document.getElementById('finalImagePreview');
+    const downloadLink = document.getElementById('downloadLink');
+    const aspectRatio = document.getElementById('aspectRatio');
+    const exportDpr = document.getElementById('exportDpr');
+    const fileWarn = document.getElementById('fileWarn');
+
+    // Overlays
+    const wishOverlay = document.getElementById('wishOverlay');
+    const subOverlay = document.getElementById('subOverlay');
+
+    // Inputs
+    const inputs = {
+      wishText: document.getElementById('wishText'),
+      wishColor: document.getElementById('wishColor'),
+      wishSize: document.getElementById('wishSize'),
+      wishFont: document.getElementById('wishFont'),
+      wishRotate: document.getElementById('wishRotate'),
+      wishStrokeEnable: document.getElementById('wishStrokeEnable'),
+      wishStrokeColor: document.getElementById('wishStrokeColor'),
+      wishStrokeWidth: document.getElementById('wishStrokeWidth'),
+
+      subText: document.getElementById('subText'),
+      subColor: document.getElementById('subColor'),
+      subSize: document.getElementById('subSize'),
+      subFont: document.getElementById('subFont'),
+      subRotate: document.getElementById('subRotate'),
+      subStrokeEnable: document.getElementById('subStrokeEnable'),
+      subStrokeColor: document.getElementById('subStrokeColor'),
+      subStrokeWidth: document.getElementById('subStrokeWidth'),
+    };
+
+    const undoButton = document.getElementById('undoButton');
+    const resetButton = document.getElementById('resetButton');
+    const saveButton = document.getElementById('saveDesign');
+    const loadButton = document.getElementById('loadDesign');
+    const clearSavedBtn = document.getElementById('clearSaved');
+    const helpBtn = document.getElementById('helpButton');
+
+    // State
+    let dpr = parseFloat(window.devicePixelRatio || 1); // default current DPR
+    let activeOverlay = null;
+    let offset = { x: 0, y: 0 }; // offset between pointer and overlay center
+    let uploadedImage = new Image();
+    let isImageLoaded = false;
+    let historyStack = []; // simple undo for moves
+    const MAX_HISTORY = 20;
+    const STORAGE_KEY = 'wishweaver_saved_design_v1';
+
+    // SAFETY: enforce word limit for subText
+    function enforceSubTextLimit() {
+      const words = inputs.subText.value.trim().split(/\s+/).filter(Boolean);
+      if (words.length > 20) {
+        inputs.subText.value = words.slice(0,20).join(' ');
+      }
+    }
+
+    // Convert percent string to number safely
+    function percentOrDefault(val, def=50) {
+      const n = parseFloat(val);
+      return Number.isFinite(n) ? n : def;
+    }
+
+    // Update overlay DOMs from input values
+    function updateTextOverlays() {
+      // Wish
+      wishOverlay.textContent = inputs.wishText.value;
+      wishOverlay.style.color = inputs.wishColor.value;
+      wishOverlay.style.fontSize = inputs.wishSize.value + 'px';
+      swapFontClass(wishOverlay, inputs.wishFont.value);
+      wishOverlay.style.transform = `translate(-50%, -50%) rotate(${inputs.wishRotate.value}deg)`;
+      // stroke inputs only used on canvas export
+
+      // Sub
+      enforceSubTextLimit();
+      subOverlay.textContent = inputs.subText.value;
+      subOverlay.style.color = inputs.subColor.value;
+      subOverlay.style.fontSize = inputs.subSize.value + 'px';
+      swapFontClass(subOverlay, inputs.subFont.value);
+      subOverlay.style.transform = `translate(-50%, -50%) rotate(${inputs.subRotate.value}deg)`;
+    }
+
+    // Swap font classes (preserve other classes)
+    function swapFontClass(el, newFont) {
+      const fonts = ['font-oswald','font-caveat','font-inter','font-mono'];
+      fonts.forEach(f => el.classList.remove(f));
+      el.classList.add(newFont);
+    }
+
+    // Resize canvas and set transform safely (setTransform replaces any previous transform)
+    function resizeCanvas() {
+      // read target CSS size from container width and aspect ratio
+      const cssWidth = previewContainer.clientWidth;
+      const [w,h] = aspectRatio.value.split(':').map(Number);
+      const cssHeight = Math.round(cssWidth * (h / w));
+
+      // set CSS sizes
+      previewContainer.style.height = cssHeight + 'px';
+      canvas.style.width = cssWidth + 'px';
+      canvas.style.height = cssHeight + 'px';
+
+      // choose DPR for rendering — for preview we use current device DPR; export may use chosen DPR later
+      dpr = parseFloat(window.devicePixelRatio || 1);
+
+      // set canvas internal buffer size (pixels)
+      canvas.width = Math.round(cssWidth * dpr);
+      canvas.height = Math.round(cssHeight * dpr);
+
+      // IMPORTANT: set transform so drawing in CSS px maps to scaled pixels. Use setTransform to avoid accumulation.
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // clear canvas (in CSS px units because transform maps coordinates)
+      ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+      if (isImageLoaded) drawImageOnCanvas();
+    }
+
+    // Draw image on canvas using CSS coordinates (setTransform scales it)
+    function drawImageOnCanvas() {
+      if (!isImageLoaded) return;
+      const cssW = canvas.width / dpr;
+      const cssH = canvas.height / dpr;
+      const imgW = uploadedImage.width;
+      const imgH = uploadedImage.height;
+
+      // scale to cover (center-crop)
+      const scale = Math.max(cssW / imgW, cssH / imgH);
+      const tW = imgW * scale;
+      const tH = imgH * scale;
+      const x = (cssW - tW) / 2;
+      const y = (cssH - tH) / 2;
+
+      // draw using CSS coords — transform will scale to device pixels
+      ctx.clearRect(0, 0, cssW, cssH);
+      ctx.drawImage(uploadedImage, x, y, tW, tH);
+    }
+
+    // Pointer helpers (support pointer events)
+    function getPointerCoords(evt) {
+      // For pointer events use clientX/clientY. For touch, pointer events already normalize.
+      return { x: evt.clientX ?? 0, y: evt.clientY ?? 0 };
+    }
+
+    // Save move history (pre-move snapshot)
+    function saveHistory(el) {
+      const entry = {
+        id: el.id,
+        top: el.style.top || '50%',
+        left: el.style.left || '50%',
+        transform: el.style.transform || ''
+      };
+      historyStack.push(entry);
+      if (historyStack.length > MAX_HISTORY) historyStack.shift();
+      undoButton.disabled = false;
+    }
+
+    function undoLastMove() {
+      if (!historyStack.length) return;
+      const last = historyStack.pop();
+      const el = document.getElementById(last.id);
+      if (el) {
+        el.style.top = last.top;
+        el.style.left = last.left;
+        el.style.transform = last.transform;
+      }
+      if (!historyStack.length) undoButton.disabled = true;
+    }
+
+    // Reset everything to initial defaults
+    function resetAll() {
+      wishOverlay.style.top = '25%'; wishOverlay.style.left = '50%'; wishOverlay.style.transform = 'translate(-50%,-50%) rotate(0deg)';
+      subOverlay.style.top = '80%'; subOverlay.style.left = '50%'; subOverlay.style.transform = 'translate(-50%,-50%) rotate(0deg)';
+      aspectRatio.value = '1:1';
+      // reset inputs
+      inputs.wishText.value = 'Happy Moments!';
+      inputs.wishColor.value = '#ffffff';
+      inputs.wishSize.value = 48;
+      inputs.wishFont.value = 'font-oswald';
+      inputs.wishRotate.value = 0;
+      inputs.wishStrokeEnable.checked = false;
+      inputs.wishStrokeColor.value = '#000000';
+      inputs.wishStrokeWidth.value = 2;
+
+      inputs.subText.value = 'Wishing you a wonderful day filled with joy and laughter!';
+      inputs.subColor.value = '#facc15';
+      inputs.subSize.value = 20;
+      inputs.subFont.value = 'font-inter';
+      inputs.subRotate.value = 0;
+      inputs.subStrokeEnable.checked = false;
+      inputs.subStrokeColor.value = '#000000';
+      inputs.subStrokeWidth.value = 1;
+
+      updateTextOverlays();
+      historyStack = [];
+      undoButton.disabled = true;
+      outputArea.classList.add('hidden');
+      // redraw
+      resizeCanvas();
+    }
+
+    // Apply a single overlay's text to canvas (respects rotation & stroke)
+    function applyCanvasTextToCtx(el, options) {
+      // options: {text, color, fontSize, fontClass, rotateDeg, strokeEnable, strokeColor, strokeWidth}
+      const cssW = canvas.width / dpr;
+      const cssH = canvas.height / dpr;
+      const left = percentOrDefault(el.style.left, 50);
+      const top = percentOrDefault(el.style.top, 50);
+      const x = (left / 100) * cssW;
+      const y = (top / 100) * cssH;
+
+      const fontSize = options.fontSize || parseFloat(window.getComputedStyle(el).fontSize) || 24;
+
+      // map font class to family
+      let family = 'Inter';
+      if ((options.fontClass || '').includes('oswald')) family = 'Oswald';
+      else if ((options.fontClass || '').includes('caveat')) family = 'Caveat';
+      else if ((options.fontClass || '').includes('mono')) family = 'Roboto Mono';
+
+      // Build font in CSS px units — ctx.setTransform ensures crispness
+      ctx.font = `${fontSize}px ${family}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // apply rotation by saving/restoring and using translate/rotate in CSS units
+      ctx.save();
+      // move to center (CSS coords)
+      ctx.translate(x, y);
+      ctx.rotate((options.rotateDeg || 0) * Math.PI / 180);
+
+      // stroke if requested
+      if (options.strokeEnable) {
+        ctx.lineWidth = Math.max(1, options.strokeWidth || 1);
+        ctx.strokeStyle = options.strokeColor || '#000';
+        ctx.strokeText(options.text, 0, 0);
+      }
+
+      // fill
+      ctx.fillStyle = options.color || '#fff';
+      ctx.fillText(options.text, 0, 0);
+      ctx.restore();
+    }
+
+    // Generate final image with chosen export DPR
+    function generateFinalImage() {
+      if (!isImageLoaded) return;
+
+      // get export DPR chosen by user
+      const exportScale = parseFloat(exportDpr.value) || 2;
+
+      // CSS sizes
+      const cssW = canvas.width / dpr;
+      const cssH = canvas.height / dpr;
+
+      // create an offscreen canvas for export (pixel buffer = css * exportScale)
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = Math.round(cssW * exportScale);
+      exportCanvas.height = Math.round(cssH * exportScale);
+      const ectx = exportCanvas.getContext('2d');
+
+      // scale so drawing in CSS px maps to exported pixels
+      ectx.setTransform(exportScale, 0, 0, exportScale, 0, 0);
+
+      // draw background image (center-crop) in CSS coords
+      const imgW = uploadedImage.width, imgH = uploadedImage.height;
+      const scale = Math.max(cssW / imgW, cssH / imgH);
+      const tW = imgW * scale, tH = imgH * scale;
+      const x = (cssW - tW) / 2, y = (cssH - tH) / 2;
+      ectx.clearRect(0,0,cssW, cssH);
+      ectx.drawImage(uploadedImage, x, y, tW, tH);
+
+      // apply texts (wish + sub)
+      applyCanvasTextToExport(ectx, wishOverlay, {
+        text: inputs.wishText.value,
+        color: inputs.wishColor.value,
+        fontSize: parseFloat(inputs.wishSize.value),
+        fontClass: inputs.wishFont.value,
+        rotateDeg: parseFloat(inputs.wishRotate.value),
+        strokeEnable: inputs.wishStrokeEnable.checked,
+        strokeColor: inputs.wishStrokeColor.value,
+        strokeWidth: parseFloat(inputs.wishStrokeWidth.value)
+      });
+
+      applyCanvasTextToExport(ectx, subOverlay, {
+        text: inputs.subText.value,
+        color: inputs.subColor.value,
+        fontSize: parseFloat(inputs.subSize.value),
+        fontClass: inputs.subFont.value,
+        rotateDeg: parseFloat(inputs.subRotate.value),
+        strokeEnable: inputs.subStrokeEnable.checked,
+        strokeColor: inputs.subStrokeColor.value,
+        strokeWidth: parseFloat(inputs.subStrokeWidth.value)
+      });
+
+      // build dataURL and update UI
+      const dataUrl = exportCanvas.toDataURL('image/png');
+      finalImagePreview.src = dataUrl;
+      finalImagePreview.style.display = 'block';
+      downloadLink.href = dataUrl;
+      outputArea.classList.remove('hidden');
+
+      // scroll to output
+      finalImagePreview.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Similar to applyCanvasTextToCtx but uses provided context (for export) and draws in CSS units (transform applied)
+    function applyCanvasTextToExport(ectx, el, options) {
+      // same logic as applyCanvasTextToCtx but using ectx
+      const cssW = canvas.width / dpr;
+      const cssH = canvas.height / dpr;
+      const left = percentOrDefault(el.style.left, 50);
+      const top = percentOrDefault(el.style.top, 50);
+      const x = (left / 100) * cssW;
+      const y = (top / 100) * cssH;
+
+      const fontSize = options.fontSize || parseFloat(window.getComputedStyle(el).fontSize) || 24;
+
+      let family = 'Inter';
+      if ((options.fontClass || '').includes('oswald')) family = 'Oswald';
+      else if ((options.fontClass || '').includes('caveat')) family = 'Caveat';
+      else if ((options.fontClass || '').includes('mono')) family = 'Roboto Mono';
+
+      ectx.save();
+      ectx.font = `${fontSize}px ${family}`;
+      ectx.textAlign = 'center';
+      ectx.textBaseline = 'middle';
+      ectx.translate(x, y);
+      ectx.rotate((options.rotateDeg || 0) * Math.PI / 180);
+
+      if (options.strokeEnable) {
+        ectx.lineWidth = Math.max(1, options.strokeWidth || 1);
+        ectx.strokeStyle = options.strokeColor || '#000';
+        ectx.strokeText(options.text, 0, 0);
+      }
+      ectx.fillStyle = options.color || '#fff';
+      ectx.fillText(options.text, 0, 0);
+      ectx.restore();
+    }
+
+    /* ------------------ POINTER DRAG HANDLERS ------------------ */
+    function pointerDownHandler(e) {
+      // Only start when pointer is on an overlay
+      if (!e.target.classList.contains('draggable-text')) return;
+      e.preventDefault();
+      activeOverlay = e.target;
+      activeOverlay.setPointerCapture?.(e.pointerId);
+
+      // Save pre-move state
+      saveHistory(activeOverlay);
+
+      // compute offset relative to overlay center
+      const parentRect = previewContainer.getBoundingClientRect();
+      const leftPercent = percentOrDefault(activeOverlay.style.left, 50);
+      const topPercent = percentOrDefault(activeOverlay.style.top, 50);
+      const centerX = parentRect.left + (parentRect.width * leftPercent / 100);
+      const centerY = parentRect.top + (parentRect.height * topPercent / 100);
+
+      const { x, y } = getPointerCoords(e);
+      offset.x = x - centerX;
+      offset.y = y - centerY;
+
+      // slightly raise overlay
+      activeOverlay.style.zIndex = 20;
+    }
+
+    function pointerMoveHandler(e) {
+      if (!activeOverlay) return;
+      e.preventDefault();
+
+      // pointer coords
+      const { x, y } = getPointerCoords(e);
+      const parentRect = previewContainer.getBoundingClientRect();
+
+      // new center in viewport coords
+      const newCenterX = x - offset.x;
+      const newCenterY = y - offset.y;
+
+      // convert to percent relative to container
+      let leftPct = ((newCenterX - parentRect.left) / parentRect.width) * 100;
+      let topPct = ((newCenterY - parentRect.top) / parentRect.height) * 100;
+      leftPct = Math.max(0, Math.min(100, leftPct));
+      topPct = Math.max(0, Math.min(100, topPct));
+
+      activeOverlay.style.left = leftPct.toFixed(2) + '%';
+      activeOverlay.style.top = topPct.toFixed(2) + '%';
+    }
+
+    function pointerUpHandler(e) {
+      if (!activeOverlay) return;
+      activeOverlay.releasePointerCapture?.(e.pointerId);
+      activeOverlay.style.zIndex = 1;
+      activeOverlay = null;
+    }
+
+    // Normalized pointer coords (works with PointerEvent / MouseEvent)
+    function getPointerCoords(evt) {
+      return { x: evt.clientX ?? 0, y: evt.clientY ?? 0 };
+    }
+
+    /* ------------------ KEYBOARD NUDGE ------------------ */
+    function overlayKeyHandler(e) {
+      // nudge overlay with arrow keys when focused
+      const el = e.currentTarget;
+      const step = e.shiftKey ? 10 : 1; // shift = big steps
+      let moved = false;
+      let left = percentOrDefault(el.style.left, 50);
+      let top = percentOrDefault(el.style.top, 50);
+
+      if (e.key === 'ArrowLeft') { left -= (step / (previewContainer.clientWidth/100)); moved = true; }
+      if (e.key === 'ArrowRight') { left += (step / (previewContainer.clientWidth/100)); moved = true; }
+      if (e.key === 'ArrowUp') { top -= (step / (previewContainer.clientHeight/100)); moved = true; }
+      if (e.key === 'ArrowDown') { top += (step / (previewContainer.clientHeight/100)); moved = true; }
+
+      if (moved) {
+        e.preventDefault();
+        // save pre-move to history
+        saveHistory(el);
+        el.style.left = Math.max(0, Math.min(100, left)).toFixed(2) + '%';
+        el.style.top = Math.max(0, Math.min(100, top)).toFixed(2) + '%';
+        undoButton.disabled = false;
+      }
+    }
+
+    /* ------------------ IMAGE UPLOAD ------------------ */
+    imageUpload.addEventListener('change', (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      // warn if big
+      if (file.size > 8 * 1024 * 1024) {
+        fileWarn.textContent = 'Large image detected (>8MB). Upload may be slow; consider using a smaller image.';
+        fileWarn.classList.remove('hidden');
+      } else {
+        fileWarn.classList.add('hidden');
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        uploadedImage = new Image();
+        uploadedImage.onload = function() {
+          isImageLoaded = true;
+          imagePlaceholder.style.display = 'none';
+          processButton.disabled = false;
+          resizeCanvas();
+          drawImageOnCanvas();
         };
-
-        // State Management
-        let uploadedImage = new Image();
-        let isImageLoaded = false;
-        let activeOverlay = null; // Tracks which element is being dragged
-        let offset = { x: 0, y: 0 }; // Mouse offset during drag
-
-        // --- Core UI & Text Update Logic ---
-
-        // 1. Resize Canvas & Overlays to fit container
-        const resizeCanvas = () => {
-            const size = previewContainer.clientWidth;
-            canvas.width = size;
-            canvas.height = size;
-            if (isImageLoaded) {
-                drawImageOnCanvas();
-            } else {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            }
+        uploadedImage.onerror = function() {
+          console.error('Image load error');
         };
+        uploadedImage.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
 
-        // 2. Initial Setup and Listeners
-        window.addEventListener('resize', resizeCanvas);
-        window.addEventListener('load', () => {
-            resizeCanvas(); // Set initial canvas size
-            updateTextOverlays(); // Apply initial text styles
-        });
+    /* ------------------ EVENTS & LISTENERS ------------------ */
 
-        // 3. Update Text Overlays based on input values
-        const updateTextOverlays = () => {
-            // Main Wish
-            wishOverlay.textContent = inputs.wishText.value;
-            wishOverlay.style.color = inputs.wishColor.value;
-            wishOverlay.style.fontSize = `${inputs.wishSize.value}px`;
-            wishOverlay.className = `draggable-text ${inputs.wishFont.value}`;
+    // pointer events (capture at container level)
+    document.addEventListener('pointerdown', pointerDownHandler);
+    document.addEventListener('pointermove', pointerMoveHandler, { passive: false });
+    document.addEventListener('pointerup', pointerUpHandler);
+    // ensure overlays are focusable and keyboard-nudgeable
+    [wishOverlay, subOverlay].forEach(el => {
+      el.addEventListener('keydown', overlayKeyHandler);
+    });
 
-            // Sub Text
-            // Simple word count check for friendly feedback (max 20 words)
-            const subWords = inputs.subText.value.trim().split(/\s+/).filter(Boolean);
-            const truncatedSubText = subWords.length > 20 ? subWords.slice(0, 20).join(' ') : inputs.subText.value;
-            inputs.subText.value = truncatedSubText; // Enforce max 20 words visually
-            subOverlay.textContent = truncatedSubText;
-            
-            subOverlay.style.color = inputs.subColor.value;
-            subOverlay.style.fontSize = `${inputs.subSize.value}px`;
-            subOverlay.className = `draggable-text ${inputs.subFont.value}`;
-        };
+    // update overlays when inputs change
+    Object.values(inputs).forEach(inp => {
+      inp.addEventListener('input', () => {
+        updateTextOverlays();
+      });
+    });
 
-        // Attach listeners for all customization inputs
-        Object.values(inputs).forEach(input => {
-            input.addEventListener('input', updateTextOverlays);
-        });
+    // aspect ratio and resize handling
+    aspectRatio.addEventListener('change', () => {
+      resizeCanvas();
+      // keep overlay positions the same (percent-based)
+    });
+    window.addEventListener('resize', debounce(() => resizeCanvas(), 120));
 
-        // --- Image Loading and Drawing Logic ---
+    // Undo / Reset
+    undoButton.addEventListener('click', undoLastMove);
+    resetButton.addEventListener('click', resetAll);
 
-        // Draw image onto canvas, handling variable formats (Crop/Center)
-        const drawImageOnCanvas = () => {
-            if (!isImageLoaded) return;
+    // Generate / export
+    processButton.addEventListener('click', () => {
+      // ensure image present
+      if (!isImageLoaded) return;
+      // hide overlays briefly (not necessary for export since we render on export canvas separately)
+      generateFinalImage();
+    });
 
-            const canvasWidth = canvas.width;
-            const canvasHeight = canvas.height;
-            const imgWidth = uploadedImage.width;
-            const imgHeight = uploadedImage.height;
+    // Save / Load design to localStorage
+    saveButton.addEventListener('click', () => {
+      // Build a small object capturing state
+      const state = {
+        imageDataUrl: uploadedImage && uploadedImage.src ? uploadedImage.src : null,
+        aspectRatio: aspectRatio.value,
+        wish: {
+          text: inputs.wishText.value,
+          color: inputs.wishColor.value,
+          size: inputs.wishSize.value,
+          font: inputs.wishFont.value,
+          rotate: inputs.wishRotate.value,
+          strokeEnable: inputs.wishStrokeEnable.checked,
+          strokeColor: inputs.wishStrokeColor.value,
+          strokeWidth: inputs.wishStrokeWidth.value,
+          top: wishOverlay.style.top || '25%',
+          left: wishOverlay.style.left || '50%',
+          transform: wishOverlay.style.transform || ''
+        },
+        sub: {
+          text: inputs.subText.value,
+          color: inputs.subColor.value,
+          size: inputs.subSize.value,
+          font: inputs.subFont.value,
+          rotate: inputs.subRotate.value,
+          strokeEnable: inputs.subStrokeEnable.checked,
+          strokeColor: inputs.subStrokeColor.value,
+          strokeWidth: inputs.subStrokeWidth.value,
+          top: subOverlay.style.top || '80%',
+          left: subOverlay.style.left || '50%',
+          transform: subOverlay.style.transform || ''
+        }
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      alert('Design saved to your browser (localStorage).');
+    });
 
-            // Clear canvas
-            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    loadButton.addEventListener('click', () => {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) { alert('No saved design found.'); return; }
+      try {
+        const st = JSON.parse(raw);
+        if (st.imageDataUrl) {
+          uploadedImage = new Image();
+          uploadedImage.onload = () => {
+            isImageLoaded = true;
+            imagePlaceholder.style.display = 'none';
+            resizeCanvas();
+            drawImageOnCanvas();
+          };
+          uploadedImage.src = st.imageDataUrl;
+        }
+        if (st.aspectRatio) aspectRatio.value = st.aspectRatio;
+        if (st.wish) {
+          inputs.wishText.value = st.wish.text || inputs.wishText.value;
+          inputs.wishColor.value = st.wish.color || inputs.wishColor.value;
+          inputs.wishSize.value = st.wish.size || inputs.wishSize.value;
+          inputs.wishFont.value = st.wish.font || inputs.wishFont.value;
+          inputs.wishRotate.value = st.wish.rotate || inputs.wishRotate.value;
+          inputs.wishStrokeEnable.checked = st.wish.strokeEnable || false;
+          inputs.wishStrokeColor.value = st.wish.strokeColor || inputs.wishStrokeColor.value;
+          inputs.wishStrokeWidth.value = st.wish.strokeWidth || inputs.wishStrokeWidth.value;
+          wishOverlay.style.top = st.wish.top || wishOverlay.style.top;
+          wishOverlay.style.left = st.wish.left || wishOverlay.style.left;
+          wishOverlay.style.transform = st.wish.transform || wishOverlay.style.transform;
+        }
+        if (st.sub) {
+          inputs.subText.value = st.sub.text || inputs.subText.value;
+          inputs.subColor.value = st.sub.color || inputs.subColor.value;
+          inputs.subSize.value = st.sub.size || inputs.subSize.value;
+          inputs.subFont.value = st.sub.font || inputs.subFont.value;
+          inputs.subRotate.value = st.sub.rotate || inputs.subRotate.value;
+          inputs.subStrokeEnable.checked = st.sub.strokeEnable || false;
+          inputs.subStrokeColor.value = st.sub.strokeColor || inputs.subStrokeColor.value;
+          inputs.subStrokeWidth.value = st.sub.strokeWidth || inputs.subStrokeWidth.value;
+          subOverlay.style.top = st.sub.top || subOverlay.style.top;
+          subOverlay.style.left = st.sub.left || subOverlay.style.left;
+          subOverlay.style.transform = st.sub.transform || subOverlay.style.transform;
+        }
+        updateTextOverlays();
+        resizeCanvas();
+        alert('Design loaded.');
+      } catch (err) {
+        console.error(err);
+        alert('Failed to load saved design.');
+      }
+    });
 
-            let scale = Math.max(canvasWidth / imgWidth, canvasHeight / imgHeight);
-            let targetWidth = imgWidth * scale;
-            let targetHeight = imgHeight * scale;
-            let x = (canvasWidth - targetWidth) / 2;
-            let y = (canvasHeight - targetHeight) / 2;
+    clearSavedBtn.addEventListener('click', () => {
+      localStorage.removeItem(STORAGE_KEY);
+      alert('Saved design cleared.');
+    });
 
-            // Draw the image cropped to fill the canvas
-            ctx.drawImage(uploadedImage, x, y, targetWidth, targetHeight);
-        };
+    // Help modal
+    helpBtn.addEventListener('click', () => {
+      const msg = `How to use Wish Weaver\n\n1) Upload an image (image is never uploaded to server).\n2) Choose aspect ratio and customize text, font, color, stroke, and rotation.\n3) Drag text boxes on the preview. Use arrow keys to nudge (Shift for larger steps).\n4) Click Generate PNG to export at chosen DPI. Save to localStorage to continue later.`;
+      alert(msg);
+    });
 
-        imageUpload.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    uploadedImage.onload = () => {
-                        isImageLoaded = true;
-                        imagePlaceholder.style.display = 'none';
-                        processButton.disabled = false;
-                        outputArea.classList.add('hidden');
-                        drawImageOnCanvas();
-                    };
-                    uploadedImage.onerror = () => {
-                        console.error("Error loading image.");
-                        isImageLoaded = false;
-                    };
-                    uploadedImage.src = event.target.result;
-                };
-                reader.readAsDataURL(file);
-            } else {
-                isImageLoaded = false;
-                imagePlaceholder.style.display = 'flex';
-                processButton.disabled = true;
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            }
-        });
+    // Utility: debounce
+    function debounce(fn, ms=100) {
+      let t;
+      return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+    }
 
-        // --- Drag and Drop Logic (for HTML Overlays) ---
+    // small helper to get pointer coords (for both mouse and touch - using pointer events)
+    function getPointerCoords(evt) {
+      return { x: evt.clientX ?? 0, y: evt.clientY ?? 0 };
+    }
 
-        const startDrag = (e) => {
-            // Use e.touches[0] for touch events, e otherwise
-            const clientX = e.clientX || e.touches[0].clientX;
-            const clientY = e.clientY || e.touches[0].clientY;
+    // initial wiring: overlay interactions via pointer events on document (we used pointer handlers above)
+    // ensure overlays are clickable for focus
+    [wishOverlay, subOverlay].forEach(el => {
+      // default positions if not set
+      if (!el.style.left) el.style.left = el === wishOverlay ? '50%' : '50%';
+      if (!el.style.top) el.style.top = el === wishOverlay ? '25%' : '80%';
 
-            activeOverlay = e.currentTarget;
-            activeOverlay.style.zIndex = 10;
-            
-            // Calculate mouse offset relative to the overlay's center
-            const rect = activeOverlay.getBoundingClientRect();
-            const parentRect = previewContainer.getBoundingClientRect();
+      // allow keyboard focus
+      el.setAttribute('tabindex', '0');
 
-            // Calculate current position relative to container (0-100%)
-            const currentLeftPercent = parseFloat(activeOverlay.style.left) || 50;
-            const currentTopPercent = parseFloat(activeOverlay.style.top) || 50;
-            
-            // Current center position in pixels
-            const currentCenterX = parentRect.left + (parentRect.width * currentLeftPercent / 100);
-            const currentCenterY = parentRect.top + (parentRect.height * currentTopPercent / 100);
+      // bring up rotation wheel for visual feedback when rotate input changes (we update transform in updateTextOverlays)
+      el.addEventListener('focus', () => { el.style.outline = 'none'; });
+    });
 
-            // Calculate offset between click position and element's center
-            offset.x = clientX - currentCenterX;
-            offset.y = clientY - currentCenterY;
+    // when pointerdown occurs on overlay, track pointer capture & moves (listeners already attached globally)
+    document.addEventListener('pointerdown', (ev) => {
+      if (!ev.target.classList.contains('draggable-text')) return;
+      // start handled by pointerDownHandler
+    });
 
-            document.addEventListener('mousemove', drag, { passive: false });
-            document.addEventListener('mouseup', stopDrag);
-            document.addEventListener('touchmove', drag, { passive: false });
-            document.addEventListener('touchend', stopDrag);
-            e.preventDefault(); // Prevent default touch behavior (scrolling)
-        };
+    // small adjustments to enable initial update
+    updateTextOverlays();
+    resizeCanvas();
 
-        const drag = (e) => {
-            if (!activeOverlay) return;
+    // enable process button when image loaded
+    const enableProcessWhenReady = () => {
+      processButton.disabled = !isImageLoaded;
+    };
+    // watch imageLoaded for enabling (image load sets true)
+    const observer = new MutationObserver(() => enableProcessWhenReady());
+    observer.observe(processButton, { attributes: true });
 
-            const clientX = e.clientX || e.touches[0].clientX;
-            const clientY = e.clientY || e.touches[0].clientY;
+    // Wire top-level pointer handlers (separate from earlier functions so they are installed after DOM is ready)
+    document.addEventListener('pointerdown', (e) => {
+      // only start drag when on draggable
+      if (!e.target.classList.contains('draggable-text')) return;
+      // delegate to pointerDownHandler
+      pointerDownHandler(e);
+    });
 
-            const parentRect = previewContainer.getBoundingClientRect();
-            
-            // Calculate new center position (in pixels)
-            const newCenterX = clientX - offset.x;
-            const newCenterY = clientY - offset.y;
+    document.addEventListener('pointermove', (e) => {
+      pointerMoveHandler(e);
+    }, { passive: false });
 
-            // Convert pixel position back to percentage relative to the container
-            let newLeftPercent = ((newCenterX - parentRect.left) / parentRect.width) * 100;
-            let newTopPercent = ((newCenterY - parentRect.top) / parentRect.height) * 100;
+    document.addEventListener('pointerup', (e) => {
+      pointerUpHandler(e);
+    });
 
-            // Clamp values between 0% and 100% to keep text within the bounds
-            newLeftPercent = Math.max(0, Math.min(100, newLeftPercent));
-            newTopPercent = Math.max(0, Math.min(100, newTopPercent));
+    // Attach keyboard nudge listeners (already added above per overlay)
+    wishOverlay.addEventListener('keydown', overlayKeyHandler);
+    subOverlay.addEventListener('keydown', overlayKeyHandler);
 
-            activeOverlay.style.left = `${newLeftPercent}%`;
-            activeOverlay.style.top = `${newTopPercent}%`;
-            
-            e.preventDefault(); // Prevent scrolling during drag
-        };
+    // small utility: ensure buttons disabled/enabled reflect state
+    function updateButtonsState() {
+      undoButton.disabled = historyStack.length === 0;
+      processButton.disabled = !isImageLoaded;
+    }
+    setInterval(updateButtonsState, 600);
 
-        const stopDrag = () => {
-            if (activeOverlay) {
-                activeOverlay.style.zIndex = 1;
-                activeOverlay = null;
-            }
-            document.removeEventListener('mousemove', drag);
-            document.removeEventListener('mouseup', stopDrag);
-            document.removeEventListener('touchmove', drag);
-            document.removeEventListener('touchend', stopDrag);
-        };
+    // initial reset defaults
+    resetAll();
 
-        wishOverlay.addEventListener('mousedown', startDrag);
-        wishOverlay.addEventListener('touchstart', startDrag);
-        subOverlay.addEventListener('mousedown', startDrag);
-        subOverlay.addEventListener('touchstart', startDrag);
-
-        // --- Final Image Generation Logic ---
-
-        const applyCanvasText = (textElement, text, maxCharPerLine) => {
-            const fontName = textElement.className.match(/font-([a-z0-9]+)/i)[0].replace('font-', '');
-            const fontSize = parseInt(textElement.style.fontSize) * (canvas.width / previewContainer.clientWidth);
-            const color = textElement.style.color;
-            const leftPercent = parseFloat(textElement.style.left);
-            const topPercent = parseFloat(textElement.style.top);
-
-            const x = (leftPercent / 100) * canvas.width;
-            const y = (topPercent / 100) * canvas.height;
-
-            // Setup context for text
-            ctx.fillStyle = color;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            
-            // Custom font mapping for Canvas
-            let canvasFontFamily;
-            switch(fontName) {
-                case 'oswald': canvasFontFamily = 'Oswald'; break;
-                case 'caveat': canvasFontFamily = 'Caveat'; break;
-                case 'mono': canvasFontFamily = 'Roboto Mono'; break;
-                case 'inter':
-                default: canvasFontFamily = 'Inter'; break;
-            }
-            ctx.font = `${fontSize}px ${canvasFontFamily}`;
-
-            // Add text shadow for better contrast
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
-            ctx.shadowBlur = 4;
-            ctx.shadowOffsetX = 2;
-            ctx.shadowOffsetY = 2;
-            
-            // Simple text wrapping (since sub-text has a word limit, it's simpler)
-            const words = text.split(' ');
-            let line = '';
-            let lines = [];
-            const lineHeight = fontSize * 1.2;
-
-            for(let n = 0; n < words.length; n++) {
-                let testLine = line + words[n] + ' ';
-                let testWidth = ctx.measureText(testLine).width;
-                if (testWidth > canvas.width * 0.8 && n > 0) { // Max 80% of canvas width
-                    lines.push(line);
-                    line = words[n] + ' ';
-                } else {
-                    line = testLine;
-                }
-            }
-            lines.push(line);
-
-            // Draw all lines, adjusting for multiple lines
-            lines.forEach((l, i) => {
-                // Adjust Y position upwards for multi-line text to center it around the Y coordinate
-                const startY = y - ((lines.length - 1) * lineHeight / 2) + (i * lineHeight);
-                ctx.fillText(l.trim(), x, startY);
-            });
-            
-            // Clear shadow for next draw
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
-        };
-
-        processButton.addEventListener('click', () => {
-            if (!isImageLoaded) return;
-
-            // 1. Hide the HTML overlays during the capture process
-            wishOverlay.style.opacity = '0';
-            subOverlay.style.opacity = '0';
-
-            // 2. Redraw the image background
-            drawImageOnCanvas(); 
-            
-            // 3. Draw the custom text onto the Canvas
-            applyCanvasText(wishOverlay, inputs.wishText.value, 20);
-            applyCanvasText(subOverlay, inputs.subText.value, 15);
-
-            // 4. Generate the final image data URL
-            const finalImageDataURL = canvas.toDataURL('image/png');
-
-            // 5. Update the output section
-            finalImagePreview.src = finalImageDataURL;
-            finalImagePreview.style.display = 'block';
-            downloadLink.href = finalImageDataURL;
-            outputArea.classList.remove('hidden');
-
-            // 6. Restore the HTML overlays for continued editing
-            setTimeout(() => {
-                wishOverlay.style.opacity = '1';
-                subOverlay.style.opacity = '1';
-            }, 500);
-
-            // Scroll to output
-            finalImagePreview.scrollIntoView({ behavior: 'smooth' });
-        });
-
-        // --- Helper: Help Button Modal ---
-        document.getElementById('helpButton').addEventListener('click', () => {
-            const message = "## How to Use Wish Weaver\n\n1.  **Upload:** Click 'Choose Your Canvas' to select an image from your device.\n2.  **Customize:** Enter your 'Main Wish Statement' and the short 'Sub-Text' (max 20 words). Adjust their color, size, and font style.\n3.  **Position:** Drag the text boxes (the dashed white lines) directly on the preview image to place them anywhere you like.\n4.  **Generate:** Click 'Generate Shareable Card'. This creates the final, high-quality image.\n5.  **Share:** Download the PNG file and share it on WhatsApp, Instagram, or Facebook!\n\n**Tip:** The image is automatically cropped to fit the square preview frame perfectly (center crop).";
-            
-            // Simple custom modal/message box
-            const existingModal = document.getElementById('infoModal');
-            if (existingModal) existingModal.remove();
-
-            const modal = document.createElement('div');
-            modal.id = 'infoModal';
-            modal.className = 'fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50';
-            modal.innerHTML = `
-                <div class="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full transform transition-all duration-300 scale-100">
-                    <div class="flex justify-between items-center mb-4 border-b pb-2">
-                        <h3 class="text-2xl font-bold text-primary-blue">Guide to Wish Weaver</h3>
-                        <button id="closeModal" class="text-gray-500 hover:text-gray-800 transition">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                        </button>
-                    </div>
-                    <p class="text-gray-700 whitespace-pre-line">${message.replace(/## /g, '<h3>').replace(/\n/g, '<br>').replace(/<\/h3>/g, '</h3>')}</p>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            document.getElementById('closeModal').addEventListener('click', () => modal.remove());
-        });
-
-    </script>
+  </script>
 </body>
 </html>
