@@ -876,37 +876,84 @@
     }
   }
 
-  function drawTextOnExportCtx(ectx, el, options) {
-    const cssW = canvas.width / dpr;
-    const cssH = canvas.height / dpr;
-    const left = percentOrDefault(el.style.left,50);
-    const top = percentOrDefault(el.style.top,50);
-    const x = (left/100) * cssW;
-    const y = (top/100) * cssH;
-    const fontSize = options.fontSize || parseFloat(window.getComputedStyle(el).fontSize) || 24;
-    let family = 'Inter';
-    if ((options.fontClass||'').includes('oswald')) family='Oswald';
-    else if ((options.fontClass||'').includes('caveat')) family='Caveat';
-    else if ((options.fontClass||'').includes('mono')) family='Roboto Mono';
+function drawTextOnExportCtx(ectx, el, options) {
+  const cssW = canvas.width / dpr;
+  const cssH = canvas.height / dpr;
+  const left = percentOrDefault(el.style.left,50);
+  const top = percentOrDefault(el.style.top,50);
+  const x = (left/100) * cssW;
+  const y = (top/100) * cssH;
+  const fontSize = options.fontSize || parseFloat(window.getComputedStyle(el).fontSize) || 24;
+  let family = 'Inter';
+  if ((options.fontClass||'').includes('oswald')) family='Oswald';
+  else if ((options.fontClass||'').includes('caveat')) family='Caveat';
+  else if ((options.fontClass||'').includes('mono')) family='Roboto Mono';
 
-    ectx.save();
-    ectx.translate(x,y);
-    ectx.rotate((options.rotateDeg||0) * Math.PI/180);
-    ectx.font = `${fontSize}px ${family}`;
-    ectx.textAlign = 'center';
-    ectx.textBaseline = 'middle';
-    // scale stroke for export: use conservative multiplier to avoid heavy stroke
-    const baseStroke = Math.max(0, Number(options.strokeWidth) || 0);
-    const strokeExportPx = Math.max(0, baseStroke * 0.6);
+  // Helper: wrap text into lines respecting explicit newlines and maxWidth
+  function wrapText(ctx, text, maxWidth) {
+    const paragraphs = String(text).split('\n');
+    const lines = [];
+    for (let p of paragraphs) {
+      p = p.trim();
+      if (p === '') { lines.push(''); continue; }
+      const words = p.split(/\s+/);
+      let current = words[0] || '';
+      for (let i = 1; i < words.length; i++) {
+        const w = words[i];
+        const test = current + ' ' + w;
+        if (ctx.measureText(test).width <= maxWidth) {
+          current = test;
+        } else {
+          lines.push(current);
+          current = w;
+        }
+      }
+      if (current !== '') lines.push(current);
+    }
+    return lines;
+  }
+
+  ectx.save();
+  ectx.translate(x,y);
+  ectx.rotate((options.rotateDeg||0) * Math.PI/180);
+  ectx.font = `${fontSize}px ${family}`;
+  ectx.textAlign = 'center';
+  ectx.textBaseline = 'middle';
+
+  // compute wrapping width: allow some margin so text doesn't touch edges
+  const margin = Math.max(16, cssW * 0.04); // at least 16px or ~4% of width
+  const maxTextWidth = Math.max(40, cssW - (margin * 2));
+
+  // build lines (respect explicit newlines)
+  const rawText = String(options.text || '');
+  const lines = wrapText(ectx, rawText, maxTextWidth);
+
+  // line height (a bit larger than fontSize for readability)
+  const lineHeight = fontSize * 1.15;
+
+  // Vertical positioning: center the block at (0,0) (which is translate x,y)
+  const totalHeight = lines.length * lineHeight;
+  let startY = - (totalHeight / 2) + (lineHeight / 2);
+
+  // scale stroke for export: use conservative multiplier to avoid heavy stroke
+  const baseStroke = Math.max(0, Number(options.strokeWidth) || 0);
+  const strokeExportPx = Math.max(0, baseStroke * 0.6);
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineY = startY + (i * lineHeight);
     if (options.strokeEnable && strokeExportPx > 0) {
       ectx.lineWidth = Math.max(1, strokeExportPx);
-      ectx.strokeStyle = options.strokeColor||'#000';
-      ectx.strokeText(options.text,0,0);
+      ectx.strokeStyle = options.strokeColor || '#000';
+      ectx.strokeText(line, 0, lineY);
     }
-    ectx.fillStyle = options.color||'#fff';
-    ectx.fillText(options.text,0,0);
-    ectx.restore();
+    ectx.fillStyle = options.color || '#fff';
+    ectx.fillText(line, 0, lineY);
   }
+
+  ectx.restore();
+}
+
 
   function drawStickerOnExportCtx(ectx, el) {
     // we now support emoji-based stickers (text). Draw the emoji on canvas.
