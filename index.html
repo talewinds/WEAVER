@@ -350,10 +350,8 @@
   <script>
   /************************************************************************
    * Wish Weaver — single-file app
-   * Changes:
-   * - Replace external-image stickers with emoji stickers to avoid CORS taint
-   * - Remove sticker-controls UI (kept sticker functions working)
-   * - Ensure generate/export works and output watermark is clickable
+   * Fix: Prevent taint by converting external saved image URLs into data: URLs
+   * Also keeps earlier fixes: emoji stickers, watermark, share, etc.
    ************************************************************************/
 
   // DOM references
@@ -429,6 +427,34 @@
     const fonts = ['font-oswald','font-caveat','font-inter','font-mono'];
     fonts.forEach(f=>el.classList.remove(f));
     el.classList.add(newFont);
+  }
+
+  // Convert external image URL -> data: URL safely (returns dataURL string)
+  async function loadImageFromSource(src) {
+    // If it's already a data URL, return immediately
+    if (!src) throw new Error('No image source provided');
+    if (src.startsWith('data:')) return src;
+
+    // Try to fetch the resource and convert to data URL
+    try {
+      const resp = await fetch(src, { mode: 'cors' }); // try CORS fetch
+      if (!resp.ok) throw new Error('Fetch failed: ' + resp.status);
+      const blob = await resp.blob();
+      return await blobToDataURL(blob);
+    } catch (err) {
+      // fetch failed (likely CORS) — we can't safely draw the external image without CORS.
+      console.error('loadImageFromSource failed for', src, err);
+      throw new Error('Unable to fetch external image (CORS blocked). Please re-upload the image file using the Upload control.');
+    }
+  }
+
+  function blobToDataURL(blob) {
+    return new Promise((res, rej) => {
+      const fr = new FileReader();
+      fr.onload = () => res(fr.result);
+      fr.onerror = (e) => rej(e);
+      fr.readAsDataURL(blob);
+    });
   }
 
   // update overlays (including stroke style)
@@ -613,7 +639,6 @@
     activeSticker = el;
     if (!el) { return; }
     el.classList.add('selected');
-    // no sticker-controls UI (removed), selection simply highlights (css) and enables Delete key
   }
 
   // sticker palette click -> add emoji sticker
@@ -940,7 +965,7 @@
       return { emoji: span ? span.textContent : '🎉', left, top, scale, rotate, fontsize, z };
     });
     const state = {
-      imageDataUrl: uploadedImage && uploadedImage.src ? uploadedImage.src : null,
+      imageDataUrl: uploadedImage && uploadedImage.src ? uploadedImage.src : null, // store data: or external URL if any
       aspectRatio: aspectRatio.value,
       wish: {
         text: inputs.wishText.value,
@@ -974,15 +999,31 @@
     alert('Design saved locally in your browser.');
   });
 
-  loadButton.addEventListener('click', () => {
+  // load button uses loadImageFromSource to avoid taint
+  loadButton.addEventListener('click', async () => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) { alert('No saved design found.'); return; }
     try {
       const st = JSON.parse(raw);
       if (st.imageDataUrl) {
-        uploadedImage = new Image();
-        uploadedImage.onload = () => { isImageLoaded = true; imagePlaceholder.style.display='none'; generateButton.disabled = false; generateButton.style.pointerEvents = 'auto'; resizeCanvas(); drawImageOnCanvas(); updateTextOverlays(); };
-        uploadedImage.src = st.imageDataUrl;
+        try {
+          const safeDataUrl = await loadImageFromSource(st.imageDataUrl);
+          uploadedImage = new Image();
+          uploadedImage.onload = () => { 
+            isImageLoaded = true; 
+            imagePlaceholder.style.display='none'; 
+            generateButton.disabled = false; 
+            generateButton.style.pointerEvents = 'auto'; 
+            resizeCanvas(); 
+            drawImageOnCanvas(); 
+            updateTextOverlays(); 
+          };
+          uploadedImage.onerror = function(e){ console.error('Loaded image error', e); alert('Failed to load the saved image — please re-upload the image manually.'); };
+          uploadedImage.src = safeDataUrl;
+        } catch (err) {
+          // couldn't convert external URL -> dataURL (CORS) — inform user and abort loading image
+          alert(err.message + '\nOpen the saved design and re-upload the image file using the Upload control.');
+        }
       }
       if (st.aspectRatio) aspectRatio.value = st.aspectRatio;
       if (st.wish) {
