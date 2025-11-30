@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Sitemap location (search engines will look here)
+Sitemap: https://talewinds.github.io/WEAVER/sitemap.xml
