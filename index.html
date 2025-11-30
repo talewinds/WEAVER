@@ -198,14 +198,9 @@
         </div>
       </div>
 
-      <!-- Quick Actions -->
+      <!-- Quick Actions NOTE: action buttons moved below preview as requested -->
       <div class="p-6 bg-white rounded-xl shadow flex flex-col gap-3">
-        <button id="resetButton" class="px-4 py-2 rounded bg-gray-200">Reset All</button>
-        <div class="flex gap-2">
-          <button id="undoButton" class="flex-1 px-4 py-2 rounded bg-yellow-400 disabled:opacity-50" disabled>Undo Move</button>
-          <!-- Replaced old Generate PNG (removed). New workable button: GENERATE SHARABLE CARD -->
-          <button id="generateButton" class="flex-1 px-4 py-2 rounded bg-green-600 text-white disabled:opacity-50" disabled>GENERATE SHARABLE CARD</button>
-        </div>
+        <div class="text-sm text-gray-600">Quick actions (Reset / Undo / Generate) are shown next to the preview for quicker use.</div>
       </div>
     </section>
 
@@ -235,6 +230,13 @@
             <svg class="w-16 h-16 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 003-2V6a2 2 0 00-2-2H6"></path></svg>
             <p class="text-lg font-semibold">Upload an image to start</p>
           </div>
+        </div>
+
+        <!-- Buttons moved to below the uploaded picture, just above the ad -->
+        <div class="mt-4 flex gap-3 items-center justify-center">
+          <button id="resetButton" class="px-4 py-2 rounded bg-gray-200">Reset All</button>
+          <button id="undoButton" class="px-4 py-2 rounded bg-yellow-400 disabled:opacity-50" disabled>Undo</button>
+          <button id="generateButton" class="px-4 py-2 rounded bg-green-600 text-white disabled:opacity-50" disabled>GENERATE SHARABLE CARD</button>
         </div>
 
         <!-- Ad slot below preview (responsive) -->
@@ -286,10 +288,13 @@
 
   <script>
   /************************************************************************
-   * Wish Weaver — single-file app (modified)
-   * - Replaced Generate PNG with GENERATE SHARABLE CARD (id=generateButton)
-   * - Added ad placeholders (AdSense)
-   * - Did not disturb other features
+   * Wish Weaver — single-file app
+   * Changes applied:
+   * 1) Stop drawing text onto preview canvas (prevents duplication).
+   * 2) Move action buttons under preview (Reset All / Undo / Generate).
+   * 3) Add small "designed by weaver" watermark to exported image.
+   * 4) Ensure Reset All clears uploaded image and all settings.
+   * 5) Rename Undo button label to "Undo".
    ************************************************************************/
 
   // DOM references
@@ -298,7 +303,7 @@
   const previewContainer = document.getElementById('previewContainer');
   const imageUpload = document.getElementById('imageUpload');
   const imagePlaceholder = document.getElementById('imagePlaceholder');
-  const generateButton = document.getElementById('generateButton'); // NEW button
+  const generateButton = document.getElementById('generateButton');
   const outputArea = document.getElementById('outputArea');
   const finalImagePreview = document.getElementById('finalImagePreview');
   const downloadLink = document.getElementById('downloadLink');
@@ -406,7 +411,11 @@
   }
 
   function drawImageOnCanvas() {
-    if (!isImageLoaded) return;
+    if (!isImageLoaded) {
+      // clear preview canvas
+      ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+      return;
+    }
     const cssW = canvas.width / dpr;
     const cssH = canvas.height / dpr;
     const iw = uploadedImage.width, ih = uploadedImage.height;
@@ -447,12 +456,15 @@
 
   // reset
   function resetAll() {
+    // reset overlays positions & styles
     wishOverlay.style.top = '25%'; wishOverlay.style.left = '50%'; wishOverlay.style.transform = 'translate(-50%,-50%) rotate(0deg)';
     subOverlay.style.top = '80%'; subOverlay.style.left = '50%'; subOverlay.style.transform = 'translate(-50%,-50%) rotate(0deg)';
+    // clear stickers and controls
     stickerLayerContainer.innerHTML = '';
     activeSticker = null; stickerControls.classList.add('hidden');
+
+    // reset aspect ratio & inputs
     aspectRatio.value = '1:1';
-    // reset inputs
     inputs.wishText.value = 'Happy Moments!';
     inputs.wishColor.value = '#ffffff';
     inputs.wishSize.value = 48;
@@ -471,10 +483,27 @@
     inputs.subStrokeColor.value = '#000000';
     inputs.subStrokeWidth.value = 1;
 
+    // update overlays to match inputs
     updateTextOverlays();
+
+    // clear history and buttons
     historyStack = [];
     undoButton.disabled = true;
+
+    // clear uploaded image and reset related state
+    uploadedImage = new Image();
+    isImageLoaded = false;
+    imageUpload.value = ''; // clear file input
+    imagePlaceholder.style.display = 'flex';
+    generateButton.disabled = true;
+
+    // clear canvas preview and output area
+    ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
     outputArea.classList.add('hidden');
+    finalImagePreview.style.display = 'none';
+    downloadLink.href = '';
+
+    // ensure canvas reflow
     resizeCanvas();
   }
 
@@ -627,6 +656,8 @@
       el.style.left = clamp(left,0,100).toFixed(2) + '%';
       el.style.top = clamp(top,0,100).toFixed(2) + '%';
       undoButton.disabled = false;
+      // refresh preview canvas (image only)
+      drawImageOnCanvas();
     }
   }
 
@@ -653,10 +684,10 @@
       uploadedImage.onload = function() {
         isImageLoaded = true;
         imagePlaceholder.style.display = 'none';
-        generateButton.disabled = false; // enable the new generate button
+        generateButton.disabled = false; // enable generate
         resizeCanvas();
         drawImageOnCanvas();
-        applyTextAndPreview(); // draw text preview on top of canvas
+        // NOTE: do NOT draw text onto preview canvas (we keep DOM overlays visible & editable)
       };
       uploadedImage.onerror = function() { console.error('Image load error'); };
       uploadedImage.src = evt.target.result;
@@ -664,65 +695,8 @@
     reader.readAsDataURL(file);
   });
 
-  // apply text to preview (draw image+text on canvas)
-  function applyTextAndPreview() {
-    if (!isImageLoaded) {
-      ctx.clearRect(0,0, canvas.width / dpr, canvas.height / dpr);
-      return;
-    }
-    drawImageOnCanvas();
-    // draw texts on preview canvas (ctx scaled by setTransform)
-    drawTextOnCanvasPreview(wishOverlay, {
-      text: inputs.wishText.value,
-      color: inputs.wishColor.value,
-      fontSize: parseFloat(inputs.wishSize.value),
-      fontClass: inputs.wishFont.value,
-      rotateDeg: parseFloat(inputs.wishRotate.value),
-      strokeEnable: inputs.wishStrokeEnable.checked,
-      strokeColor: inputs.wishStrokeColor.value,
-      strokeWidth: parseFloat(inputs.wishStrokeWidth.value)
-    });
-    drawTextOnCanvasPreview(subOverlay, {
-      text: inputs.subText.value,
-      color: inputs.subColor.value,
-      fontSize: parseFloat(inputs.subSize.value),
-      fontClass: inputs.subFont.value,
-      rotateDeg: parseFloat(inputs.subRotate.value),
-      strokeEnable: inputs.subStrokeEnable.checked,
-      strokeColor: inputs.subStrokeColor.value,
-      strokeWidth: parseFloat(inputs.subStrokeWidth.value)
-    });
-  }
-
-  // draw text to preview canvas (ctx already scaled)
-  function drawTextOnCanvasPreview(el, options) {
-    const cssW = canvas.width / dpr;
-    const cssH = canvas.height / dpr;
-    const left = percentOrDefault(el.style.left,50);
-    const top = percentOrDefault(el.style.top,50);
-    const x = (left/100) * cssW;
-    const y = (top/100) * cssH;
-    const fontSize = options.fontSize || parseFloat(window.getComputedStyle(el).fontSize) || 24;
-    let family = 'Inter';
-    if ((options.fontClass||'').includes('oswald')) family='Oswald';
-    else if ((options.fontClass||'').includes('caveat')) family='Caveat';
-    else if ((options.fontClass||'').includes('mono')) family='Roboto Mono';
-
-    ctx.save();
-    ctx.translate(x,y);
-    ctx.rotate((options.rotateDeg||0) * Math.PI/180);
-    ctx.font = `${fontSize}px ${family}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    if (options.strokeEnable) {
-      ctx.lineWidth = Math.max(1, options.strokeWidth||1);
-      ctx.strokeStyle = options.strokeColor||'#000';
-      ctx.strokeText(options.text,0,0);
-    }
-    ctx.fillStyle = options.color||'#fff';
-    ctx.fillText(options.text,0,0);
-    ctx.restore();
-  }
+  // draw text to preview canvas — REMOVED from live preview to avoid duplication.
+  // We keep drawTextOnExportCtx for final export only.
 
   // export / generate final PNG (renders image, stickers, text into an offscreen canvas using chosen export DPI)
   function generateFinalImage() {
@@ -734,6 +708,7 @@
     exportCanvas.width = Math.round(cssW * exportScale);
     exportCanvas.height = Math.round(cssH * exportScale);
     const ectx = exportCanvas.getContext('2d', { alpha: false });
+    // scale so 1 unit = 1 CSS pixel (like preview)
     ectx.setTransform(exportScale, 0, 0, exportScale, 0, 0);
 
     // draw background image center-crop
@@ -751,7 +726,7 @@
       drawStickerOnExportCtx(ectx, el);
     });
 
-    // draw texts
+    // draw texts (from overlays)
     drawTextOnExportCtx(ectx, wishOverlay, {
       text: inputs.wishText.value,
       color: inputs.wishColor.value,
@@ -773,10 +748,31 @@
       strokeWidth: parseFloat(inputs.subStrokeWidth.value)
     });
 
+    // subtle watermark: "designed by weaver" at bottom center
+    try {
+      const watermarkText = 'designed by weaver';
+      const fontSize = Math.max(12, Math.round(cssW * 0.03)); // relative, but small
+      ectx.save();
+      ectx.globalAlpha = 0.55;
+      ectx.font = `${fontSize}px Inter`;
+      ectx.textAlign = 'center';
+      ectx.textBaseline = 'bottom';
+      // subtle stroke for readability
+      ectx.lineWidth = Math.max(1, Math.round(fontSize * 0.08));
+      ectx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ectx.strokeText(watermarkText, cssW / 2, cssH - Math.round(fontSize * 0.25));
+      ectx.fillStyle = 'rgba(255,255,255,0.95)';
+      ectx.fillText(watermarkText, cssW / 2, cssH - Math.round(fontSize * 0.25));
+      ectx.restore();
+    } catch (err) {
+      console.warn('Watermark draw failed', err);
+    }
+
     const dataUrl = exportCanvas.toDataURL('image/png');
     finalImagePreview.src = dataUrl;
     finalImagePreview.style.display = 'block';
     downloadLink.href = dataUrl;
+    downloadLink.download = 'wishweaver-card.png';
     outputArea.classList.remove('hidden');
     finalImagePreview.scrollIntoView({ behavior: 'smooth' });
   }
@@ -839,14 +835,9 @@
   }
 
   // events wiring
-  aspectRatio.addEventListener('change', () => { resizeCanvas(); applyTextAndPreview(); });
-  window.addEventListener('resize', debounce(()=> { resizeCanvas(); applyTextAndPreview(); }, 120));
-  Object.values(inputs).forEach(inp => { inp.addEventListener('input', () => { updateTextOverlays(); applyTextAndPreview(); }); });
-
-  // pointer handlers attached earlier (they are defined now)
-  document.addEventListener('pointerdown', pointerDownHandler);
-  document.addEventListener('pointermove', pointerMoveHandler, { passive:false });
-  document.addEventListener('pointerup', pointerUpHandler);
+  aspectRatio.addEventListener('change', () => { resizeCanvas(); /* do not draw text in preview */ });
+  window.addEventListener('resize', debounce(()=> { resizeCanvas(); }, 120));
+  Object.values(inputs).forEach(inp => { inp.addEventListener('input', () => { updateTextOverlays(); /* update preview image only if image present */ if (isImageLoaded) drawImageOnCanvas(); }); });
 
   // sticker container selection click
   stickerLayerContainer.addEventListener('pointerdown', (ev) => {
@@ -920,7 +911,7 @@
       const st = JSON.parse(raw);
       if (st.imageDataUrl) {
         uploadedImage = new Image();
-        uploadedImage.onload = () => { isImageLoaded = true; imagePlaceholder.style.display='none'; generateButton.disabled = false; resizeCanvas(); drawImageOnCanvas(); applyTextAndPreview(); };
+        uploadedImage.onload = () => { isImageLoaded = true; imagePlaceholder.style.display='none'; generateButton.disabled = false; resizeCanvas(); drawImageOnCanvas(); };
         uploadedImage.src = st.imageDataUrl;
       }
       if (st.aspectRatio) aspectRatio.value = st.aspectRatio;
@@ -1014,12 +1005,13 @@
   generateButton.addEventListener('click', () => {
     // Provide a tiny visual feedback before generating
     generateButton.disabled = true;
+    const prevText = generateButton.textContent;
     generateButton.textContent = 'Generating…';
     setTimeout(() => {
       try {
         generateFinalImage();
       } finally {
-        generateButton.textContent = 'GENERATE SHARABLE CARD';
+        generateButton.textContent = prevText || 'GENERATE SHARABLE CARD';
         generateButton.disabled = !isImageLoaded;
       }
     }, 80); // tiny delay to allow button state change to show
@@ -1035,9 +1027,6 @@
 
   // initial enable/disable
   generateButton.disabled = true;
-
-  // ensure clickability: prevent overlay pointer events from being swallowed by other elements
-  // (pointer handlers above are authoritative)
 
   // Done.
   </script>
