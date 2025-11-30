@@ -89,6 +89,7 @@
       z-index: 60;
       backdrop-filter: blur(2px);
       -webkit-backdrop-filter: blur(2px);
+      pointer-events: auto;
     }
     #previewWatermark:hover { background: rgba(255,255,255,0.75); }
 
@@ -109,6 +110,8 @@
       z-index: 999;
       backdrop-filter: blur(2px);
       -webkit-backdrop-filter: blur(2px);
+      pointer-events: auto;
+      display: none; /* hidden until output generated */
     }
     #outputWatermark:hover { background: rgba(255,255,255,0.85); }
 
@@ -346,11 +349,11 @@
 
   <script>
   /************************************************************************
-   * Wish Weaver — single-file app (modified)
-   * Changes: (only)
-   * 1) add clickable output watermark overlay
-   * 2) show only Download + Share Card buttons and implement share
-   * 3) remove the sticker writeup (done in HTML)
+   * Wish Weaver — single-file app
+   * Fixes:
+   * - Ensure generate always creates output (robust handler + pre-export overlay update)
+   * - Make output watermark clickable and on-top
+   * - Keep other behavior/layout unchanged
    ************************************************************************/
 
   // DOM references
@@ -367,6 +370,7 @@
   const aspectRatio = document.getElementById('aspectRatio');
   const exportDpr = document.getElementById('exportDpr');
   const fileWarn = document.getElementById('fileWarn');
+  const outputWatermark = document.getElementById('outputWatermark');
 
   const wishOverlay = document.getElementById('wishOverlay');
   const subOverlay = document.getElementById('subOverlay');
@@ -578,6 +582,9 @@
     downloadLink.href = '';
     lastExportDataUrl = null;
 
+    // hide watermark until next export
+    if (outputWatermark) outputWatermark.style.display = 'none';
+
     resizeCanvas();
   }
 
@@ -760,6 +767,8 @@
         generateButton.style.pointerEvents = 'auto';
         resizeCanvas();
         drawImageOnCanvas();
+        // also update overlays to match any input changes
+        updateTextOverlays();
       };
       uploadedImage.onerror = function() { console.error('Image load error'); };
       uploadedImage.src = evt.target.result;
@@ -769,86 +778,109 @@
 
   // export / generate final PNG (renders image, stickers, text into an offscreen canvas using chosen export DPI)
   function generateFinalImage() {
-    if (!isImageLoaded) return;
-    const exportScale = parseFloat(exportDpr.value) || 2;
-    const cssW = canvas.width / dpr;
-    const cssH = canvas.height / dpr;
-    const exportCanvas = document.createElement('canvas');
-    exportCanvas.width = Math.round(cssW * exportScale);
-    exportCanvas.height = Math.round(cssH * exportScale);
-    const ectx = exportCanvas.getContext('2d', { alpha: false });
-    ectx.setTransform(exportScale, 0, 0, exportScale, 0, 0);
-
-    // draw background image center-crop
-    const iw = uploadedImage.width, ih = uploadedImage.height;
-    const scale = Math.max(cssW / iw, cssH / ih);
-    const tW = iw * scale, tH = ih * scale;
-    const x = (cssW - tW) / 2, y = (cssH - tH) / 2;
-    ectx.clearRect(0,0,cssW,cssH);
-    ectx.drawImage(uploadedImage, x, y, tW, tH);
-
-    // draw stickers by z-index ascending
-    const stickerEls = Array.from(stickerLayerContainer.children);
-    stickerEls.sort((a,b) => (parseInt(a.style.zIndex||3) - parseInt(b.style.zIndex||3)));
-    stickerEls.forEach(el => {
-      drawStickerOnExportCtx(ectx, el);
-    });
-
-    // draw texts
-    drawTextOnExportCtx(ectx, wishOverlay, {
-      text: inputs.wishText.value,
-      color: inputs.wishColor.value,
-      fontSize: parseFloat(inputs.wishSize.value),
-      fontClass: inputs.wishFont.value,
-      rotateDeg: parseFloat(inputs.wishRotate.value),
-      strokeEnable: inputs.wishStrokeEnable.checked,
-      strokeColor: inputs.wishStrokeColor.value,
-      strokeWidth: parseFloat(inputs.wishStrokeWidth.value)
-    });
-    drawTextOnExportCtx(ectx, subOverlay, {
-      text: inputs.subText.value,
-      color: inputs.subColor.value,
-      fontSize: parseFloat(inputs.subSize.value),
-      fontClass: inputs.subFont.value,
-      rotateDeg: parseFloat(inputs.subRotate.value),
-      strokeEnable: inputs.subStrokeEnable.checked,
-      strokeColor: inputs.subStrokeColor.value,
-      strokeWidth: parseFloat(inputs.subStrokeWidth.value)
-    });
-
-    // subtle watermark: "designed by weaver" at bottom center (drawn into image)
     try {
-      const watermarkText = 'designed by weaver';
-      const fontSize = Math.max(12, Math.round(cssW * 0.03)); // relative, but small
-      ectx.save();
-      ectx.globalAlpha = 0.55;
-      ectx.font = `${fontSize}px Inter`;
-      ectx.textAlign = 'center';
-      ectx.textBaseline = 'bottom';
-      // subtle stroke for readability
-      ectx.lineWidth = Math.max(1, Math.round(fontSize * 0.08));
-      ectx.strokeStyle = 'rgba(0,0,0,0.35)';
-      ectx.strokeText(watermarkText, cssW / 2, cssH - Math.round(fontSize * 0.25));
-      ectx.fillStyle = 'rgba(255,255,255,0.95)';
-      ectx.fillText(watermarkText, cssW / 2, cssH - Math.round(fontSize * 0.25));
-      ectx.restore();
+      if (!isImageLoaded) {
+        alert('Please upload an image first.');
+        return;
+      }
+
+      // Ensure overlays reflect latest settings before export
+      updateTextOverlays();
+      // draw base on visible canvas one last time so sizes are correct
+      drawImageOnCanvas();
+
+      const exportScale = parseFloat(exportDpr.value) || 2;
+      const cssW = canvas.width / dpr;
+      const cssH = canvas.height / dpr;
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = Math.round(cssW * exportScale);
+      exportCanvas.height = Math.round(cssH * exportScale);
+      const ectx = exportCanvas.getContext('2d', { alpha: false });
+      // set transform for high-res exports
+      ectx.setTransform(exportScale, 0, 0, exportScale, 0, 0);
+
+      // draw background image center-crop
+      const iw = uploadedImage.width, ih = uploadedImage.height;
+      const scale = Math.max(cssW / iw, cssH / ih);
+      const tW = iw * scale, tH = ih * scale;
+      const x = (cssW - tW) / 2, y = (cssH - tH) / 2;
+      ectx.clearRect(0,0,cssW,cssH);
+      ectx.drawImage(uploadedImage, x, y, tW, tH);
+
+      // draw stickers by z-index ascending
+      const stickerEls = Array.from(stickerLayerContainer.children);
+      stickerEls.sort((a,b) => (parseInt(a.style.zIndex||3) - parseInt(b.style.zIndex||3)));
+      stickerEls.forEach(el => {
+        drawStickerOnExportCtx(ectx, el);
+      });
+
+      // draw texts
+      drawTextOnExportCtx(ectx, wishOverlay, {
+        text: inputs.wishText.value,
+        color: inputs.wishColor.value,
+        fontSize: parseFloat(inputs.wishSize.value),
+        fontClass: inputs.wishFont.value,
+        rotateDeg: parseFloat(inputs.wishRotate.value),
+        strokeEnable: inputs.wishStrokeEnable.checked,
+        strokeColor: inputs.wishStrokeColor.value,
+        strokeWidth: parseFloat(inputs.wishStrokeWidth.value)
+      });
+      drawTextOnExportCtx(ectx, subOverlay, {
+        text: inputs.subText.value,
+        color: inputs.subColor.value,
+        fontSize: parseFloat(inputs.subSize.value),
+        fontClass: inputs.subFont.value,
+        rotateDeg: parseFloat(inputs.subRotate.value),
+        strokeEnable: inputs.subStrokeEnable.checked,
+        strokeColor: inputs.subStrokeColor.value,
+        strokeWidth: parseFloat(inputs.subStrokeWidth.value)
+      });
+
+      // subtle watermark: "designed by weaver" at bottom center (drawn into image)
+      try {
+        const watermarkText = 'designed by weaver';
+        const fontSize = Math.max(12, Math.round(cssW * 0.03)); // relative, but small
+        ectx.save();
+        ectx.globalAlpha = 0.55;
+        ectx.font = `${fontSize}px Inter`;
+        ectx.textAlign = 'center';
+        ectx.textBaseline = 'bottom';
+        // subtle stroke for readability
+        ectx.lineWidth = Math.max(1, Math.round(fontSize * 0.08));
+        ectx.strokeStyle = 'rgba(0,0,0,0.35)';
+        ectx.strokeText(watermarkText, cssW / 2, cssH - Math.round(fontSize * 0.25));
+        ectx.fillStyle = 'rgba(255,255,255,0.95)';
+        ectx.fillText(watermarkText, cssW / 2, cssH - Math.round(fontSize * 0.25));
+        ectx.restore();
+      } catch (err) {
+        console.warn('Watermark draw failed', err);
+      }
+
+      const dataUrl = exportCanvas.toDataURL('image/png');
+      lastExportDataUrl = dataUrl;
+
+      // Show result in UI
+      finalImagePreview.src = dataUrl;
+      finalImagePreview.style.display = 'block';
+      downloadLink.href = dataUrl;
+      downloadLink.download = 'wishweaver-card.png';
+      outputArea.classList.remove('hidden');
+
+      // show clickable watermark overlay above generated image
+      if (outputWatermark) {
+        outputWatermark.style.display = 'inline-block';
+        // ensure it opens in new tab
+        outputWatermark.setAttribute('href', 'https://weaver.example.com');
+        outputWatermark.setAttribute('target', '_blank');
+        outputWatermark.setAttribute('rel', 'noopener');
+      }
+
+      // scroll to output
+      finalImagePreview.scrollIntoView({ behavior: 'smooth' });
     } catch (err) {
-      console.warn('Watermark draw failed', err);
+      console.error('generateFinalImage error', err);
+      alert('Failed to generate image. Open the console for details.');
     }
-
-    const dataUrl = exportCanvas.toDataURL('image/png');
-    lastExportDataUrl = dataUrl;
-    finalImagePreview.src = dataUrl;
-    finalImagePreview.style.display = 'block';
-    downloadLink.href = dataUrl;
-    downloadLink.download = 'wishweaver-card.png';
-    outputArea.classList.remove('hidden');
-
-    // ensure the output watermark link sits on top (it's already in DOM)
-    const outWater = document.getElementById('outputWatermark');
-    if (outWater) outWater.style.display = 'inline-block';
-
-    finalImagePreview.scrollIntoView({ behavior: 'smooth' });
   }
 
   function drawTextOnExportCtx(ectx, el, options) {
@@ -982,7 +1014,7 @@
       const st = JSON.parse(raw);
       if (st.imageDataUrl) {
         uploadedImage = new Image();
-        uploadedImage.onload = () => { isImageLoaded = true; imagePlaceholder.style.display='none'; generateButton.disabled = false; generateButton.style.pointerEvents = 'auto'; resizeCanvas(); drawImageOnCanvas(); };
+        uploadedImage.onload = () => { isImageLoaded = true; imagePlaceholder.style.display='none'; generateButton.disabled = false; generateButton.style.pointerEvents = 'auto'; resizeCanvas(); drawImageOnCanvas(); updateTextOverlays(); };
         uploadedImage.src = st.imageDataUrl;
       }
       if (st.aspectRatio) aspectRatio.value = st.aspectRatio;
@@ -1062,7 +1094,12 @@
     generateButton.textContent = 'Generating…';
     setTimeout(() => {
       try {
+        // ensure overlays updated and export runs
+        updateTextOverlays();
         generateFinalImage();
+      } catch (err) {
+        console.error('handleGenerateClick error', err);
+        alert('Failed to generate image. See console for details.');
       } finally {
         generateButton.textContent = prevText || 'GENERATE SHARABLE CARD';
         generateButton.disabled = !isImageLoaded;
@@ -1070,7 +1107,7 @@
     }, 80);
   }
 
-  // sharing: convert dataURL -> Blob
+  // Sharing: utils to convert dataURL -> Blob
   async function dataURLtoBlob(dataurl) {
     const res = await fetch(dataurl);
     const blob = await res.blob();
@@ -1081,7 +1118,6 @@
   shareButton.addEventListener('click', async () => {
     if (!lastExportDataUrl) { alert('Please generate the card first.'); return; }
     try {
-      // Prefer sharing the file (mobile + supporting browsers)
       const blob = await dataURLtoBlob(lastExportDataUrl);
       const file = new File([blob], 'wishweaver-card.png', { type: 'image/png' });
 
@@ -1090,17 +1126,16 @@
         return;
       }
 
-      // Fallback: try navigator.share with URL (some browsers accept a data URL)
       if (navigator.share) {
         try {
           await navigator.share({ title: 'Wish Weaver', text: 'Check out this card I made.', url: lastExportDataUrl });
           return;
         } catch (err) {
-          // continue to final fallback
+          // fallback below
         }
       }
 
-      // Final fallback: open the image data URL in a new tab so user can use share from device (manual)
+      // Final fallback: open the image data URL in a new tab so user can save / share manually
       const w = window.open();
       w.document.write(`<title>Share image</title><img src="${lastExportDataUrl}" style="max-width:100%;">`);
       w.document.close();
