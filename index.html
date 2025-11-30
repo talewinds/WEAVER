@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Wish Weaver — Digital Card Creator</title>
+  <meta name="description" content="Wish Weaver — Create beautiful shareable cards in your browser. Local processing. Add stickers, custom text, rotate, scale, and export high-resolution PNGs." />
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Oswald:wght@400;700&family=Caveat:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
@@ -23,7 +24,7 @@
       transition: opacity 0.15s, transform 0.1s;
       max-width: 90%;
       overflow-wrap: break-word;
-      z-index: 1;
+      z-index: 5;
       touch-action: none;
       text-shadow: 2px 2px 4px rgba(0,0,0,0.45);
     }
@@ -32,7 +33,7 @@
       position: absolute;
       touch-action: none;
       transform-origin: center center;
-      z-index: 2;
+      z-index: 3;
       user-select: none;
       -webkit-user-select: none;
       cursor: grab;
@@ -46,10 +47,14 @@
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
     ::-webkit-scrollbar-track { background: #f0f4f8; }
+
+    /* sticker thumbnail style */
+    .sticker-thumb img { display:block; width:100%; height:100%; object-fit:contain; }
   </style>
 </head>
 <body class="bg-gray-50 font-inter text-gray-800 min-h-screen flex flex-col">
 
+  <!-- Header -->
   <header class="bg-blue-900 text-white">
     <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
       <h1 class="text-2xl font-bold"><span class="text-yellow-300">W</span>ish <span class="text-yellow-300">W</span>eaver</h1>
@@ -62,9 +67,10 @@
     </div>
   </header>
 
+  <!-- Main -->
   <main class="max-w-6xl mx-auto w-full flex-grow grid lg:grid-cols-3 gap-8 p-6">
 
-    <!-- Controls -->
+    <!-- Left Column: Controls -->
     <section class="lg:col-span-1 space-y-6">
 
       <div class="p-6 bg-white rounded-xl shadow">
@@ -80,7 +86,7 @@
           </select>
         </div>
         <div class="mt-4">
-          <label class="block text-sm mb-1">Export DPI (device pixels)</label>
+          <label class="block text-sm mb-1">Export DPI</label>
           <select id="exportDpr" class="w-full p-2 rounded border">
             <option value="1">1x (normal)</option>
             <option value="2" selected>2x (retina)</option>
@@ -89,9 +95,10 @@
         </div>
       </div>
 
-      <!-- Text customization -->
+      <!-- Text Customization -->
       <div class="p-6 bg-white rounded-xl shadow space-y-4">
         <h2 class="font-bold text-lg text-blue-800">2. Customize Text</h2>
+
         <div>
           <label class="text-sm block mb-1">Main Wish</label>
           <input id="wishText" class="w-full p-2 border rounded" maxlength="100" value="Happy Moments!" />
@@ -137,19 +144,18 @@
         </div>
       </div>
 
-      <!-- Sticker picker -->
+      <!-- Sticker Picker -->
       <div class="p-6 bg-white rounded-xl shadow">
         <h2 class="font-bold text-lg text-blue-800 mb-3">3. Stickers</h2>
         <p class="text-sm text-gray-600 mb-2">Click a sticker to add it to the canvas.</p>
         <div id="stickerPalette" class="grid grid-cols-4 gap-2">
-          <!-- curated Twemoji PNGs -->
           <button class="sticker-thumb p-1 bg-white rounded border" data-src="https://twemoji.maxcdn.com/v/latest/72x72/1f389.png"><img src="https://twemoji.maxcdn.com/v/latest/72x72/1f389.png" alt="party" class="w-12 h-12" /></button>
           <button class="sticker-thumb p-1 bg-white rounded border" data-src="https://twemoji.maxcdn.com/v/latest/72x72/1f381.png"><img src="https://twemoji.maxcdn.com/v/latest/72x72/1f381.png" alt="gift" class="w-12 h-12" /></button>
           <button class="sticker-thumb p-1 bg-white rounded border" data-src="https://twemoji.maxcdn.com/v/latest/72x72/1f382.png"><img src="https://twemoji.maxcdn.com/v/latest/72x72/1f382.png" alt="cake" class="w-12 h-12" /></button>
           <button class="sticker-thumb p-1 bg-white rounded border" data-src="https://twemoji.maxcdn.com/v/latest/72x72/1f496.png"><img src="https://twemoji.maxcdn.com/v/latest/72x72/1f496.png" alt="sparkling heart" class="w-12 h-12" /></button>
         </div>
 
-        <!-- sticker controls for selected sticker -->
+        <!-- Sticker controls -->
         <div id="stickerControls" class="mt-4 hidden space-y-2">
           <p class="text-sm">Selected Sticker Controls</p>
           <div class="flex items-center gap-2">
@@ -166,7 +172,7 @@
         </div>
       </div>
 
-      <!-- Quick actions -->
+      <!-- Quick Actions -->
       <div class="p-6 bg-white rounded-xl shadow flex flex-col gap-3">
         <button id="resetButton" class="px-4 py-2 rounded bg-gray-200">Reset All</button>
         <div class="flex gap-2">
@@ -176,14 +182,15 @@
       </div>
     </section>
 
-    <!-- Preview -->
+    <!-- Right Column: Preview & Output -->
     <section class="lg:col-span-2">
       <div class="bg-white rounded-xl shadow p-4">
         <h2 class="font-bold text-lg text-green-700 mb-3">Live Preview</h2>
+
         <div id="previewContainer" class="relative mx-auto overflow-hidden rounded-lg bg-gray-200 border-4 border-blue-800 max-w-2xl" style="aspect-ratio: 1 / 1; width:100%;">
           <canvas id="cardCanvas" class="w-full h-full"></canvas>
 
-          <!-- text overlays -->
+          <!-- Text overlays -->
           <div id="wishOverlay" class="draggable-text font-oswald text-white" tabindex="0"
                style="top:25%; left:50%; font-size:48px; transform: translate(-50%, -50%) rotate(0deg);">
             Happy Moments!
@@ -194,7 +201,7 @@
             Wishing you a wonderful day filled with joy and laughter!
           </div>
 
-          <!-- stickers will be inserted here as .sticker-layer elements -->
+          <!-- Sticker container (DOM overlays) -->
           <div id="stickerLayerContainer"></div>
 
           <div id="imagePlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500 pointer-events-none">
@@ -213,833 +220,783 @@
         </div>
       </div>
     </section>
+
   </main>
 
-  <footer class="text-center text-xs text-gray-500 py-6">
-    designed by <a id="weaverLink" href="https://weaver.example.com" target="_blank" rel="noopener" class="text-blue-700 underline">weaver</a> — &copy; 2025 Wish Weaver
+  <!-- Footer with SEO + Privacy + designed-by link -->
+  <footer class="bg-white mt-8 py-8 px-6">
+    <div class="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 text-sm text-gray-600">
+      <div>
+        <h3 class="font-bold text-base text-blue-800 mb-2">About Wish Weaver</h3>
+        <p>Wish Weaver is a local, browser-based card creator. Combine your photos with customizable messages, fonts, and stickers — then export high-resolution PNGs ready to share. No accounts, no uploads: your images stay on your device.</p>
+      </div>
+
+      <div>
+        <h3 class="font-bold text-base text-blue-800 mb-2">Privacy Declaration</h3>
+        <p><strong>We respect your privacy.</strong> All processing (image rendering, sticker placement, and export) happens entirely in your browser. Images and text are not uploaded to our servers unless you explicitly choose to share them. Saved designs are stored only in your browser's localStorage.</p>
+      </div>
+
+      <div>
+        <h3 class="font-bold text-base text-blue-800 mb-2">Key Features</h3>
+        <ul class="list-disc list-inside space-y-1">
+          <li>Local browser processing — no uploads.</li>
+          <li>Text layers with fonts, rotate, stroke, and keyboard nudging.</li>
+          <li>Sticker/emoji picker with scalable, rotatable image layers.</li>
+          <li>Multiple aspect ratios and high-resolution export.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto mt-6 text-center text-xs text-gray-500">
+      designed by <a id="weaverLink" href="https://weaver.example.com" target="_blank" rel="noopener" class="text-blue-700 underline">weaver</a> — &copy; 2025 Wish Weaver
+    </div>
   </footer>
 
   <script>
-    // Elements
-    const canvas = document.getElementById('cardCanvas');
-    const ctx = canvas.getContext('2d', { alpha: false });
-    const previewContainer = document.getElementById('previewContainer');
-    const imageUpload = document.getElementById('imageUpload');
-    const imagePlaceholder = document.getElementById('imagePlaceholder');
-    const processButton = document.getElementById('processButton');
-    const outputArea = document.getElementById('outputArea');
-    const finalImagePreview = document.getElementById('finalImagePreview');
-    const downloadLink = document.getElementById('downloadLink');
-    const aspectRatio = document.getElementById('aspectRatio');
-    const exportDpr = document.getElementById('exportDpr');
-    const fileWarn = document.getElementById('fileWarn');
+  /************************************************************************
+   * Wish Weaver — COMPLETE single-file app
+   * - Fixed pointer handlers (single authoritative set)
+   * - Sticker picker + draggable sticker layers
+   * - Export PNG including stickers + text (rotation/scale/stroke)
+   * - Save/Load to localStorage, Undo (moves), Reset
+   * - SEO & Privacy text included in footer
+   ************************************************************************/
 
-    const wishOverlay = document.getElementById('wishOverlay');
-    const subOverlay = document.getElementById('subOverlay');
-    const stickerPalette = document.getElementById('stickerPalette');
-    const stickerLayerContainer = document.getElementById('stickerLayerContainer');
-    const stickerControls = document.getElementById('stickerControls');
-    const stickerScale = document.getElementById('stickerScale');
-    const stickerRotate = document.getElementById('stickerRotate');
-    const deleteStickerBtn = document.getElementById('deleteSticker');
-    const bringForwardBtn = document.getElementById('bringForward');
-    const sendBackBtn = document.getElementById('sendBack');
+  // DOM references
+  const canvas = document.getElementById('cardCanvas');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const previewContainer = document.getElementById('previewContainer');
+  const imageUpload = document.getElementById('imageUpload');
+  const imagePlaceholder = document.getElementById('imagePlaceholder');
+  const processButton = document.getElementById('processButton');
+  const outputArea = document.getElementById('outputArea');
+  const finalImagePreview = document.getElementById('finalImagePreview');
+  const downloadLink = document.getElementById('downloadLink');
+  const aspectRatio = document.getElementById('aspectRatio');
+  const exportDpr = document.getElementById('exportDpr');
+  const fileWarn = document.getElementById('fileWarn');
 
-    const inputs = {
-      wishText: document.getElementById('wishText'),
-      wishColor: document.getElementById('wishColor'),
-      wishSize: document.getElementById('wishSize'),
-      wishFont: document.getElementById('wishFont'),
-      wishRotate: document.getElementById('wishRotate'),
-      wishStrokeEnable: document.getElementById('wishStrokeEnable'),
-      wishStrokeColor: document.getElementById('wishStrokeColor'),
-      wishStrokeWidth: document.getElementById('wishStrokeWidth'),
+  const wishOverlay = document.getElementById('wishOverlay');
+  const subOverlay = document.getElementById('subOverlay');
+  const stickerPalette = document.getElementById('stickerPalette');
+  const stickerLayerContainer = document.getElementById('stickerLayerContainer');
+  const stickerControls = document.getElementById('stickerControls');
+  const stickerScale = document.getElementById('stickerScale');
+  const stickerRotate = document.getElementById('stickerRotate');
+  const deleteStickerBtn = document.getElementById('deleteSticker');
+  const bringForwardBtn = document.getElementById('bringForward');
+  const sendBackBtn = document.getElementById('sendBack');
 
-      subText: document.getElementById('subText'),
-      subColor: document.getElementById('subColor'),
-      subSize: document.getElementById('subSize'),
-      subFont: document.getElementById('subFont'),
-      subRotate: document.getElementById('subRotate'),
-      subStrokeEnable: document.getElementById('subStrokeEnable'),
-      subStrokeColor: document.getElementById('subStrokeColor'),
-      subStrokeWidth: document.getElementById('subStrokeWidth'),
+  const inputs = {
+    wishText: document.getElementById('wishText'),
+    wishColor: document.getElementById('wishColor'),
+    wishSize: document.getElementById('wishSize'),
+    wishFont: document.getElementById('wishFont'),
+    wishRotate: document.getElementById('wishRotate'),
+    wishStrokeEnable: document.getElementById('wishStrokeEnable'),
+    wishStrokeColor: document.getElementById('wishStrokeColor'),
+    wishStrokeWidth: document.getElementById('wishStrokeWidth'),
+
+    subText: document.getElementById('subText'),
+    subColor: document.getElementById('subColor'),
+    subSize: document.getElementById('subSize'),
+    subFont: document.getElementById('subFont'),
+    subRotate: document.getElementById('subRotate'),
+    subStrokeEnable: document.getElementById('subStrokeEnable'),
+    subStrokeColor: document.getElementById('subStrokeColor'),
+    subStrokeWidth: document.getElementById('subStrokeWidth'),
+  };
+
+  const undoButton = document.getElementById('undoButton');
+  const resetButton = document.getElementById('resetButton');
+  const saveButton = document.getElementById('saveDesign');
+  const loadButton = document.getElementById('loadDesign');
+  const clearSavedBtn = document.getElementById('clearSaved');
+  const helpBtn = document.getElementById('helpButton');
+
+  // state
+  let dpr = parseFloat(window.devicePixelRatio || 1);
+  let uploadedImage = new Image();
+  let isImageLoaded = false;
+  let activeOverlay = null;    // dom node being dragged
+  let activeSticker = null;    // selected sticker layer
+  let offset = { x: 0, y: 0 }; // pointer offset to center
+  let historyStack = [];
+  const MAX_HISTORY = 30;
+  const STORAGE_KEY = 'wishweaver_saved_design_v3';
+  let stickerCounter = 0;
+
+  // helpers
+  function percentOrDefault(val, def=50) {
+    const n = parseFloat(val);
+    return Number.isFinite(n) ? n : def;
+  }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function debounce(fn, ms=100){ let t; return (...a)=>{clearTimeout(t); t=setTimeout(()=>fn(...a), ms);} }
+
+  function swapFontClass(el, newFont) {
+    const fonts = ['font-oswald','font-caveat','font-inter','font-mono'];
+    fonts.forEach(f=>el.classList.remove(f));
+    el.classList.add(newFont);
+  }
+
+  // update overlays
+  function updateTextOverlays() {
+    // wish
+    wishOverlay.textContent = inputs.wishText.value;
+    wishOverlay.style.color = inputs.wishColor.value;
+    wishOverlay.style.fontSize = inputs.wishSize.value + 'px';
+    swapFontClass(wishOverlay, inputs.wishFont.value);
+    wishOverlay.style.transform = `translate(-50%, -50%) rotate(${inputs.wishRotate.value}deg)`;
+
+    // sub
+    const words = inputs.subText.value.trim().split(/\s+/).filter(Boolean);
+    if (words.length > 20) inputs.subText.value = words.slice(0,20).join(' ');
+    subOverlay.textContent = inputs.subText.value;
+    subOverlay.style.color = inputs.subColor.value;
+    subOverlay.style.fontSize = inputs.subSize.value + 'px';
+    swapFontClass(subOverlay, inputs.subFont.value);
+    subOverlay.style.transform = `translate(-50%, -50%) rotate(${inputs.subRotate.value}deg)`;
+  }
+
+  // canvas resizing (no cumulative transform)
+  function resizeCanvas() {
+    const cssW = previewContainer.clientWidth;
+    const [w,h] = aspectRatio.value.split(':').map(Number);
+    const cssH = Math.round(cssW * (h / w));
+    previewContainer.style.height = cssH + 'px';
+    canvas.style.width = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    dpr = parseFloat(window.devicePixelRatio || 1);
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0,0,cssW,cssH);
+    if (isImageLoaded) drawImageOnCanvas();
+  }
+
+  function drawImageOnCanvas() {
+    if (!isImageLoaded) return;
+    const cssW = canvas.width / dpr;
+    const cssH = canvas.height / dpr;
+    const iw = uploadedImage.width, ih = uploadedImage.height;
+    const scale = Math.max(cssW / iw, cssH / ih);
+    const tW = iw * scale, tH = ih * scale;
+    const x = (cssW - tW) / 2, y = (cssH - tH) / 2;
+    ctx.clearRect(0,0,cssW,cssH);
+    ctx.drawImage(uploadedImage, x, y, tW, tH);
+  }
+
+  // save/undo helpers
+  function saveHistory(el) {
+    if (!el) return;
+    const snapshot = {
+      id: el.id || el.dataset.layerId || null,
+      type: el.classList.contains('sticker-layer') ? 'sticker' : 'text',
+      top: el.style.top || '50%',
+      left: el.style.left || '50%',
+      transform: el.style.transform || ''
     };
-
-    const undoButton = document.getElementById('undoButton');
-    const resetButton = document.getElementById('resetButton');
-    const saveButton = document.getElementById('saveDesign');
-    const loadButton = document.getElementById('loadDesign');
-    const clearSavedBtn = document.getElementById('clearSaved');
-    const helpBtn = document.getElementById('helpButton');
-
-    // State
-    let dpr = parseFloat(window.devicePixelRatio || 1);
-    let uploadedImage = new Image();
-    let isImageLoaded = false;
-    let activeOverlay = null; // current element being dragged (text or sticker)
-    let activeSticker = null; // DOM element for selected sticker (for controls)
-    let offset = { x: 0, y: 0 }; // pointer offset to center
-    let historyStack = [];
-    const MAX_HISTORY = 30;
-    const STORAGE_KEY = 'wishweaver_saved_design_v2';
-
-    // ---- helpers ----
-    function percentOrDefault(val, def=50) {
-      const n = parseFloat(val);
-      return Number.isFinite(n) ? n : def;
+    historyStack.push(snapshot);
+    if (historyStack.length > MAX_HISTORY) historyStack.shift();
+    undoButton.disabled = false;
+  }
+  function undoLastMove() {
+    if (!historyStack.length) return;
+    const last = historyStack.pop();
+    let el = null;
+    if (last.type === 'sticker') el = document.querySelector(`.sticker-layer[data-layer-id="${last.id}"]`);
+    else el = document.getElementById(last.id);
+    if (el) {
+      el.style.top = last.top;
+      el.style.left = last.left;
+      el.style.transform = last.transform;
     }
-    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-    function debounce(fn, ms=100) { let t; return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);} }
+    if (!historyStack.length) undoButton.disabled = true;
+  }
 
-    // swap font class
-    function swapFontClass(el, newFont) {
-      const fonts = ['font-oswald','font-caveat','font-inter','font-mono'];
-      fonts.forEach(f=>el.classList.remove(f));
-      el.classList.add(newFont);
+  // reset
+  function resetAll() {
+    wishOverlay.style.top = '25%'; wishOverlay.style.left = '50%'; wishOverlay.style.transform = 'translate(-50%,-50%) rotate(0deg)';
+    subOverlay.style.top = '80%'; subOverlay.style.left = '50%'; subOverlay.style.transform = 'translate(-50%,-50%) rotate(0deg)';
+    stickerLayerContainer.innerHTML = '';
+    activeSticker = null; stickerControls.classList.add('hidden');
+    aspectRatio.value = '1:1';
+    // reset inputs
+    inputs.wishText.value = 'Happy Moments!';
+    inputs.wishColor.value = '#ffffff';
+    inputs.wishSize.value = 48;
+    inputs.wishFont.value = 'font-oswald';
+    inputs.wishRotate.value = 0;
+    inputs.wishStrokeEnable.checked = false;
+    inputs.wishStrokeColor.value = '#000000';
+    inputs.wishStrokeWidth.value = 2;
+
+    inputs.subText.value = 'Wishing you a wonderful day filled with joy and laughter!';
+    inputs.subColor.value = '#facc15';
+    inputs.subSize.value = 20;
+    inputs.subFont.value = 'font-inter';
+    inputs.subRotate.value = 0;
+    inputs.subStrokeEnable.checked = false;
+    inputs.subStrokeColor.value = '#000000';
+    inputs.subStrokeWidth.value = 1;
+
+    updateTextOverlays();
+    historyStack = [];
+    undoButton.disabled = true;
+    outputArea.classList.add('hidden');
+    resizeCanvas();
+  }
+
+  // sticker creation
+  function addSticker(src, left='50%', top='50%', scale=1, rotate=0) {
+    const id = 'sticker_' + (++stickerCounter);
+    const el = document.createElement('div');
+    el.className = 'sticker-layer';
+    el.dataset.layerId = id;
+    el.style.left = left;
+    el.style.top = top;
+    el.style.transform = `translate(-50%, -50%) scale(${scale}) rotate(${rotate}deg)`;
+    el.setAttribute('tabindex', '0');
+
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = 'sticker';
+    img.style.width = '96px';
+    img.style.height = 'auto';
+    el.appendChild(img);
+
+    stickerLayerContainer.appendChild(el);
+    selectSticker(el);
+    return el;
+  }
+
+  function selectSticker(el) {
+    if (activeSticker) activeSticker.classList.remove('selected');
+    activeSticker = el;
+    if (!el) { stickerControls.classList.add('hidden'); return; }
+    el.classList.add('selected');
+    // parse transform: scale/rotate
+    const m = el.style.transform.match(/scale\((-?[0-9.]+)\)\s*rotate\((-?[0-9.]+)deg\)/);
+    const scale = m ? parseFloat(m[1]) : 1;
+    const rotate = m ? parseFloat(m[2]) : 0;
+    stickerScale.value = scale;
+    stickerRotate.value = rotate;
+    stickerControls.classList.remove('hidden');
+  }
+
+  // sticker control handlers
+  stickerScale.addEventListener('input', () => {
+    if (!activeSticker) return;
+    const s = parseFloat(stickerScale.value);
+    const r = parseFloat(stickerRotate.value);
+    activeSticker.style.transform = `translate(-50%, -50%) scale(${s}) rotate(${r}deg)`;
+  });
+  stickerRotate.addEventListener('input', () => {
+    if (!activeSticker) return;
+    const s = parseFloat(stickerScale.value);
+    const r = parseFloat(stickerRotate.value);
+    activeSticker.style.transform = `translate(-50%, -50%) scale(${s}) rotate(${r}deg)`;
+  });
+  bringForwardBtn.addEventListener('click', () => {
+    if (!activeSticker) return;
+    const z = parseInt(activeSticker.style.zIndex || 3);
+    activeSticker.style.zIndex = z + 1;
+  });
+  sendBackBtn.addEventListener('click', () => {
+    if (!activeSticker) return;
+    const z = parseInt(activeSticker.style.zIndex || 3);
+    activeSticker.style.zIndex = Math.max(0, z - 1);
+  });
+  deleteStickerBtn.addEventListener('click', () => {
+    if (!activeSticker) return;
+    activeSticker.remove();
+    activeSticker = null;
+    stickerControls.classList.add('hidden');
+  });
+
+  // sticker palette click
+  document.querySelectorAll('#stickerPalette .sticker-thumb').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const src = btn.dataset.src;
+      const existing = stickerLayerContainer.children.length;
+      const left = 50 + (existing % 5) * 6;
+      const top = 50 + Math.floor(existing / 5) * 6;
+      const st = addSticker(src, left + '%', top + '%', 1, 0);
+      // small auto-select
+      selectSticker(st);
+    });
+  });
+
+  // pointer handlers for dragging text and stickers
+  function getPointerCoords(e) { return { x: e.clientX ?? 0, y: e.clientY ?? 0 }; }
+
+  function pointerDownHandler(e) {
+    if (e.button !== undefined && e.button !== 0) return; // only primary
+    let target = e.target;
+    if (target.closest && target.closest('.sticker-layer')) target = target.closest('.sticker-layer');
+    if (!target) return;
+    if (target.classList.contains('draggable-text') || target.classList.contains('sticker-layer')) {
+      e.preventDefault();
+      activeOverlay = target;
+      saveHistory(activeOverlay);
+      if (activeOverlay.classList.contains('sticker-layer')) selectSticker(activeOverlay);
+      else { if (activeSticker) { activeSticker.classList.remove('selected'); activeSticker = null; stickerControls.classList.add('hidden'); } }
+      const parentRect = previewContainer.getBoundingClientRect();
+      const leftPercent = percentOrDefault(activeOverlay.style.left, 50);
+      const topPercent = percentOrDefault(activeOverlay.style.top, 50);
+      const centerX = parentRect.left + parentRect.width * leftPercent / 100;
+      const centerY = parentRect.top + parentRect.height * topPercent / 100;
+      const { x, y } = getPointerCoords(e);
+      offset.x = x - centerX;
+      offset.y = y - centerY;
+      try { activeOverlay.setPointerCapture?.(e.pointerId); } catch(err) {}
+      activeOverlay.style.zIndex = 99;
+    } else {
+      // clicked outside overlays -> deselect sticker
+      if (activeSticker) { activeSticker.classList.remove('selected'); activeSticker = null; stickerControls.classList.add('hidden'); }
     }
+  }
 
-    // update overlay text UI
-    function updateTextOverlays() {
-      // wish
-      wishOverlay.textContent = inputs.wishText.value;
-      wishOverlay.style.color = inputs.wishColor.value;
-      wishOverlay.style.fontSize = inputs.wishSize.value + 'px';
-      swapFontClass(wishOverlay, inputs.wishFont.value);
-      wishOverlay.style.transform = `translate(-50%, -50%) rotate(${inputs.wishRotate.value}deg)`;
-      // sub
-      const words = inputs.subText.value.trim().split(/\s+/).filter(Boolean);
-      if (words.length > 20) inputs.subText.value = words.slice(0,20).join(' ');
-      subOverlay.textContent = inputs.subText.value;
-      subOverlay.style.color = inputs.subColor.value;
-      subOverlay.style.fontSize = inputs.subSize.value + 'px';
-      swapFontClass(subOverlay, inputs.subFont.value);
-      subOverlay.style.transform = `translate(-50%, -50%) rotate(${inputs.subRotate.value}deg)`;
-    }
+  function pointerMoveHandler(e) {
+    if (!activeOverlay) return;
+    e.preventDefault();
+    const parentRect = previewContainer.getBoundingClientRect();
+    const { x, y } = getPointerCoords(e);
+    const newCenterX = x - offset.x;
+    const newCenterY = y - offset.y;
+    let leftPct = ((newCenterX - parentRect.left) / parentRect.width) * 100;
+    let topPct = ((newCenterY - parentRect.top) / parentRect.height) * 100;
+    leftPct = clamp(leftPct, 0, 100);
+    topPct = clamp(topPct, 0, 100);
+    activeOverlay.style.left = leftPct.toFixed(2) + '%';
+    activeOverlay.style.top = topPct.toFixed(2) + '%';
+  }
 
-    // canvas resize: set pixel buffer scaled by DPR (no cumulative scaling)
-    function resizeCanvas() {
-      const cssW = previewContainer.clientWidth;
-      const [w,h] = aspectRatio.value.split(':').map(Number);
-      const cssH = Math.round(cssW * (h / w));
-      previewContainer.style.height = cssH + 'px';
-      canvas.style.width = cssW + 'px';
-      canvas.style.height = cssH + 'px';
-      // keep backing ratio for preview using device DPR
-      dpr = parseFloat(window.devicePixelRatio || 1);
-      canvas.width = Math.round(cssW * dpr);
-      canvas.height = Math.round(cssH * dpr);
-      // set transform so drawing in CSS px maps to device px
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0,0,cssW,cssH);
-      if (isImageLoaded) drawImageOnCanvas();
-    }
+  function pointerUpHandler(e) {
+    if (!activeOverlay) return;
+    try { activeOverlay.releasePointerCapture?.(e.pointerId); } catch(err) {}
+    activeOverlay.style.zIndex = '';
+    activeOverlay = null;
+  }
 
-    // draw uploaded image center-crop using CSS coords (ctx already scaled)
-    function drawImageOnCanvas() {
-      if (!isImageLoaded) return;
-      const cssW = canvas.width / dpr;
-      const cssH = canvas.height / dpr;
-      const iw = uploadedImage.width, ih = uploadedImage.height;
-      const scale = Math.max(cssW / iw, cssH / ih);
-      const tW = iw * scale, tH = ih * scale;
-      const x = (cssW - tW) / 2, y = (cssH - tH) / 2;
-      ctx.clearRect(0,0,cssW,cssH);
-      ctx.drawImage(uploadedImage, x, y, tW, tH);
-    }
-
-    // pointer coords
-    function getPointerCoords(e) { return { x: e.clientX ?? 0, y: e.clientY ?? 0 }; }
-
-    // Save history for undo (save pre-move state)
-    function saveHistory(el) {
-      const snapshot = {
-        id: el.id || el.dataset.layerId || null,
-        type: el.classList.contains('sticker-layer') ? 'sticker' : 'text',
-        top: el.style.top || '50%',
-        left: el.style.left || '50%',
-        transform: el.style.transform || ''
-      };
-      historyStack.push(snapshot);
-      if (historyStack.length > MAX_HISTORY) historyStack.shift();
+  // keyboard nudging for overlays
+  function overlayKeyHandler(e) {
+    const el = e.currentTarget;
+    const step = e.shiftKey ? 10 : 1;
+    let left = percentOrDefault(el.style.left, 50);
+    let top = percentOrDefault(el.style.top, 50);
+    let moved = false;
+    if (e.key === 'ArrowLeft') { left -= (step / (previewContainer.clientWidth/100)); moved=true; }
+    if (e.key === 'ArrowRight') { left += (step / (previewContainer.clientWidth/100)); moved=true; }
+    if (e.key === 'ArrowUp') { top -= (step / (previewContainer.clientHeight/100)); moved=true; }
+    if (e.key === 'ArrowDown') { top += (step / (previewContainer.clientHeight/100)); moved=true; }
+    if (moved) {
+      e.preventDefault();
+      saveHistory(el);
+      el.style.left = clamp(left,0,100).toFixed(2) + '%';
+      el.style.top = clamp(top,0,100).toFixed(2) + '%';
       undoButton.disabled = false;
     }
-    function undoLastMove() {
-      if (!historyStack.length) return;
-      const last = historyStack.pop();
-      let el = null;
-      if (last.type === 'sticker') el = document.querySelector(`.sticker-layer[data-layer-id="${last.id}"]`);
-      else el = document.getElementById(last.id);
-      if (el) {
-        el.style.top = last.top;
-        el.style.left = last.left;
-        el.style.transform = last.transform;
-      }
-      if (!historyStack.length) undoButton.disabled = true;
+  }
+
+  wishOverlay.addEventListener('keydown', overlayKeyHandler);
+  subOverlay.addEventListener('keydown', overlayKeyHandler);
+
+  // wire global pointer events
+  document.addEventListener('pointerdown', pointerDownHandler);
+  document.addEventListener('pointermove', pointerMoveHandler, { passive:false });
+  document.addEventListener('pointerup', pointerUpHandler);
+
+  // image upload
+  imageUpload.addEventListener('change', (ev) => {
+    const file = ev.target.files && ev.target.files[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      fileWarn.textContent = 'Large image detected (>8MB). Upload may be slow; consider a smaller image.';
+      fileWarn.classList.remove('hidden');
+    } else fileWarn.classList.add('hidden');
+
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      uploadedImage = new Image();
+      uploadedImage.onload = function() {
+        isImageLoaded = true;
+        imagePlaceholder.style.display = 'none';
+        processButton.disabled = false;
+        resizeCanvas();
+        drawImageOnCanvas();
+        applyTextAndPreview(); // draw text preview on top of canvas
+      };
+      uploadedImage.onerror = function() { console.error('Image load error'); };
+      uploadedImage.src = evt.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // apply text to preview (draw image+text on canvas)
+  function applyTextAndPreview() {
+    if (!isImageLoaded) {
+      ctx.clearRect(0,0, canvas.width / dpr, canvas.height / dpr);
+      return;
     }
+    drawImageOnCanvas();
+    // draw texts on preview canvas (ctx scaled by setTransform)
+    drawTextOnCanvasPreview(wishOverlay, {
+      text: inputs.wishText.value,
+      color: inputs.wishColor.value,
+      fontSize: parseFloat(inputs.wishSize.value),
+      fontClass: inputs.wishFont.value,
+      rotateDeg: parseFloat(inputs.wishRotate.value),
+      strokeEnable: inputs.wishStrokeEnable.checked,
+      strokeColor: inputs.wishStrokeColor.value,
+      strokeWidth: parseFloat(inputs.wishStrokeWidth.value)
+    });
+    drawTextOnCanvasPreview(subOverlay, {
+      text: inputs.subText.value,
+      color: inputs.subColor.value,
+      fontSize: parseFloat(inputs.subSize.value),
+      fontClass: inputs.subFont.value,
+      rotateDeg: parseFloat(inputs.subRotate.value),
+      strokeEnable: inputs.subStrokeEnable.checked,
+      strokeColor: inputs.subStrokeColor.value,
+      strokeWidth: parseFloat(inputs.subStrokeWidth.value)
+    });
+  }
 
-    // Reset application
-    function resetAll() {
-      wishOverlay.style.top = '25%'; wishOverlay.style.left = '50%'; wishOverlay.style.transform = 'translate(-50%,-50%) rotate(0deg)';
-      subOverlay.style.top = '80%'; subOverlay.style.left = '50%'; subOverlay.style.transform = 'translate(-50%,-50%) rotate(0deg)';
-      // remove stickers
-      stickerLayerContainer.innerHTML = '';
-      activeSticker = null; stickerControls.classList.add('hidden');
-      aspectRatio.value = '1:1';
-      inputs.wishText.value = 'Happy Moments!';
-      inputs.wishColor.value = '#ffffff';
-      inputs.wishSize.value = 48;
-      inputs.wishFont.value = 'font-oswald';
-      inputs.wishRotate.value = 0;
-      inputs.wishStrokeEnable.checked = false;
-      inputs.wishStrokeColor.value = '#000000';
-      inputs.wishStrokeWidth.value = 2;
+  // draw text to preview canvas (ctx already scaled)
+  function drawTextOnCanvasPreview(el, options) {
+    const cssW = canvas.width / dpr;
+    const cssH = canvas.height / dpr;
+    const left = percentOrDefault(el.style.left,50);
+    const top = percentOrDefault(el.style.top,50);
+    const x = (left/100) * cssW;
+    const y = (top/100) * cssH;
+    const fontSize = options.fontSize || parseFloat(window.getComputedStyle(el).fontSize) || 24;
+    let family = 'Inter';
+    if ((options.fontClass||'').includes('oswald')) family='Oswald';
+    else if ((options.fontClass||'').includes('caveat')) family='Caveat';
+    else if ((options.fontClass||'').includes('mono')) family='Roboto Mono';
 
-      inputs.subText.value = 'Wishing you a wonderful day filled with joy and laughter!';
-      inputs.subColor.value = '#facc15';
-      inputs.subSize.value = 20;
-      inputs.subFont.value = 'font-inter';
-      inputs.subRotate.value = 0;
-      inputs.subStrokeEnable.checked = false;
-      inputs.subStrokeColor.value = '#000000';
-      inputs.subStrokeWidth.value = 1;
-
-      updateTextOverlays();
-      historyStack = [];
-      undoButton.disabled = true;
-      outputArea.classList.add('hidden');
-      resizeCanvas();
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.rotate((options.rotateDeg||0) * Math.PI/180);
+    ctx.font = `${fontSize}px ${family}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (options.strokeEnable) {
+      ctx.lineWidth = Math.max(1, options.strokeWidth||1);
+      ctx.strokeStyle = options.strokeColor||'#000';
+      ctx.strokeText(options.text,0,0);
     }
+    ctx.fillStyle = options.color||'#fff';
+    ctx.fillText(options.text,0,0);
+    ctx.restore();
+  }
 
-    // Create a sticker DOM element and add to canvas
-    // src: image URL; initial x,y in percent
-    let stickerCounter = 0;
-    function addSticker(src, left='50%', top='50%', scale=1, rotate=0) {
-      const id = 'sticker_'+(++stickerCounter);
-      const el = document.createElement('div');
-      el.className = 'sticker-layer';
-      el.dataset.layerId = id;
-      el.style.left = (left)+'';
-      el.style.top = (top)+'';
-      el.style.transform = `translate(-50%, -50%) scale(${scale}) rotate(${rotate}deg)`;
-      el.setAttribute('tabindex','0');
-      // default size: 80px (CSS) width, but we keep natural image inside
-      const img = document.createElement('img');
-      img.src = src;
-      img.alt = 'sticker';
-      img.style.width = '96px';
-      img.style.height = 'auto';
-      el.appendChild(img);
-      // add to container
-      stickerLayerContainer.appendChild(el);
+  // export / generate final PNG (renders image, stickers, text into an offscreen canvas using chosen export DPI)
+  function generateFinalImage() {
+    if (!isImageLoaded) return;
+    const exportScale = parseFloat(exportDpr.value) || 2;
+    const cssW = canvas.width / dpr;
+    const cssH = canvas.height / dpr;
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = Math.round(cssW * exportScale);
+    exportCanvas.height = Math.round(cssH * exportScale);
+    const ectx = exportCanvas.getContext('2d', { alpha: false });
+    ectx.setTransform(exportScale, 0, 0, exportScale, 0, 0);
 
-      // attach pointer events by delegation (global handlers will use class)
-      // set as active
-      selectSticker(el);
+    // draw background image center-crop
+    const iw = uploadedImage.width, ih = uploadedImage.height;
+    const scale = Math.max(cssW / iw, cssH / ih);
+    const tW = iw * scale, tH = ih * scale;
+    const x = (cssW - tW) / 2, y = (cssH - tH) / 2;
+    ectx.clearRect(0,0,cssW,cssH);
+    ectx.drawImage(uploadedImage, x, y, tW, tH);
 
-      return el;
+    // draw stickers by z-index ascending
+    const stickerEls = Array.from(stickerLayerContainer.children);
+    stickerEls.sort((a,b) => (parseInt(a.style.zIndex||3) - parseInt(b.style.zIndex||3)));
+    stickerEls.forEach(el => {
+      drawStickerOnExportCtx(ectx, el);
+    });
+
+    // draw texts
+    drawTextOnExportCtx(ectx, wishOverlay, {
+      text: inputs.wishText.value,
+      color: inputs.wishColor.value,
+      fontSize: parseFloat(inputs.wishSize.value),
+      fontClass: inputs.wishFont.value,
+      rotateDeg: parseFloat(inputs.wishRotate.value),
+      strokeEnable: inputs.wishStrokeEnable.checked,
+      strokeColor: inputs.wishStrokeColor.value,
+      strokeWidth: parseFloat(inputs.wishStrokeWidth.value)
+    });
+    drawTextOnExportCtx(ectx, subOverlay, {
+      text: inputs.subText.value,
+      color: inputs.subColor.value,
+      fontSize: parseFloat(inputs.subSize.value),
+      fontClass: inputs.subFont.value,
+      rotateDeg: parseFloat(inputs.subRotate.value),
+      strokeEnable: inputs.subStrokeEnable.checked,
+      strokeColor: inputs.subStrokeColor.value,
+      strokeWidth: parseFloat(inputs.subStrokeWidth.value)
+    });
+
+    const dataUrl = exportCanvas.toDataURL('image/png');
+    finalImagePreview.src = dataUrl;
+    finalImagePreview.style.display = 'block';
+    downloadLink.href = dataUrl;
+    outputArea.classList.remove('hidden');
+    finalImagePreview.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function drawTextOnExportCtx(ectx, el, options) {
+    const cssW = canvas.width / dpr;
+    const cssH = canvas.height / dpr;
+    const left = percentOrDefault(el.style.left,50);
+    const top = percentOrDefault(el.style.top,50);
+    const x = (left/100) * cssW;
+    const y = (top/100) * cssH;
+    const fontSize = options.fontSize || parseFloat(window.getComputedStyle(el).fontSize) || 24;
+    let family = 'Inter';
+    if ((options.fontClass||'').includes('oswald')) family='Oswald';
+    else if ((options.fontClass||'').includes('caveat')) family='Caveat';
+    else if ((options.fontClass||'').includes('mono')) family='Roboto Mono';
+
+    ectx.save();
+    ectx.translate(x,y);
+    ectx.rotate((options.rotateDeg||0) * Math.PI/180);
+    ectx.font = `${fontSize}px ${family}`;
+    ectx.textAlign = 'center';
+    ectx.textBaseline = 'middle';
+    if (options.strokeEnable) {
+      ectx.lineWidth = Math.max(1, options.strokeWidth||1);
+      ectx.strokeStyle = options.strokeColor||'#000';
+      ectx.strokeText(options.text,0,0);
     }
+    ectx.fillStyle = options.color||'#fff';
+    ectx.fillText(options.text,0,0);
+    ectx.restore();
+  }
 
-    // select/deselect sticker
-    function selectSticker(el) {
-      if (activeSticker) activeSticker.classList.remove('selected');
-      activeSticker = el;
-      if (!el) {
-        stickerControls.classList.add('hidden');
-        return;
-      }
-      el.classList.add('selected');
-      // parse current transform to extract scale/rotate
-      const m = el.style.transform.match(/scale\((-?[0-9.]+)\)\s*rotate\((-?[0-9.]+)deg\)/);
-      let scale = 1, rotate = 0;
-      if (m) { scale = parseFloat(m[1]); rotate = parseFloat(m[2]); }
-      stickerScale.value = scale;
-      stickerRotate.value = rotate;
-      stickerControls.classList.remove('hidden');
+  function drawStickerOnExportCtx(ectx, el) {
+    const cssW = canvas.width / dpr;
+    const cssH = canvas.height / dpr;
+    const left = percentOrDefault(el.style.left,50);
+    const top = percentOrDefault(el.style.top,50);
+    const x = (left/100) * cssW;
+    const y = (top/100) * cssH;
+
+    const tr = el.style.transform || '';
+    const m = tr.match(/scale\((-?[0-9.]+)\)\s*rotate\((-?[0-9.]+)deg\)/);
+    const scale = m ? parseFloat(m[1]) : 1;
+    const rotate = m ? parseFloat(m[2]) : 0;
+    const img = el.querySelector('img');
+    if (!img || !img.naturalWidth) return;
+
+    // CSS width used for preview (e.g., '96px')
+    const cssImgWidth = parseFloat(img.style.width) || (img.naturalWidth * 0.15);
+    const cssImgHeight = cssImgWidth * (img.naturalHeight / img.naturalWidth);
+
+    ectx.save();
+    ectx.translate(x, y);
+    ectx.rotate(rotate * Math.PI/180);
+    ectx.scale(scale, scale);
+    // draw centered
+    ectx.drawImage(img, -cssImgWidth/2, -cssImgHeight/2, cssImgWidth, cssImgHeight);
+    ectx.restore();
+  }
+
+  // events wiring
+  aspectRatio.addEventListener('change', () => { resizeCanvas(); applyTextAndPreview(); });
+  window.addEventListener('resize', debounce(()=> { resizeCanvas(); applyTextAndPreview(); }, 120));
+  Object.values(inputs).forEach(inp => { inp.addEventListener('input', () => { updateTextOverlays(); applyTextAndPreview(); }); });
+
+  // pointer handlers attached earlier (they are defined now)
+  document.addEventListener('pointerdown', pointerDownHandler);
+  document.addEventListener('pointermove', pointerMoveHandler, { passive:false });
+  document.addEventListener('pointerup', pointerUpHandler);
+
+  // sticker container selection click
+  stickerLayerContainer.addEventListener('pointerdown', (ev) => {
+    const st = ev.target.closest && ev.target.closest('.sticker-layer');
+    if (st) {
+      selectSticker(st);
     }
+  });
 
-    // update transform of activeSticker when sliders change
-    stickerScale.addEventListener('input', () => {
-      if (!activeSticker) return;
-      const s = parseFloat(stickerScale.value);
-      const r = parseFloat(stickerRotate.value);
-      activeSticker.style.transform = `translate(-50%, -50%) scale(${s}) rotate(${r}deg)`;
-    });
-    stickerRotate.addEventListener('input', () => {
-      if (!activeSticker) return;
-      const s = parseFloat(stickerScale.value);
-      const r = parseFloat(stickerRotate.value);
-      activeSticker.style.transform = `translate(-50%, -50%) scale(${s}) rotate(${r}deg)`;
-    });
-
-    // bring forward / send back
-    bringForwardBtn.addEventListener('click', () => {
-      if (!activeSticker) return;
-      // increase z-index
-      const z = parseInt(activeSticker.style.zIndex || 2);
-      activeSticker.style.zIndex = z + 1;
-    });
-    sendBackBtn.addEventListener('click', () => {
-      if (!activeSticker) return;
-      const z = parseInt(activeSticker.style.zIndex || 2);
-      activeSticker.style.zIndex = Math.max(0, z - 1);
-    });
-
-    // delete sticker
-    deleteStickerBtn.addEventListener('click', () => {
-      if (!activeSticker) return;
+  // Delete key for sticker
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Delete' && activeSticker) {
       activeSticker.remove();
       activeSticker = null;
       stickerControls.classList.add('hidden');
-    });
-
-    // Sticker palette click
-    stickerPalette.querySelectorAll('.sticker-thumb').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const src = btn.dataset.src;
-        const st = addSticker(src, '50%', '50%', 1, 0);
-        // small offset so subsequent added stickers don't stack exactly
-        const existing = stickerLayerContainer.children.length;
-        const left = 50 + (existing % 5) * 6;
-        const top = 50 + Math.floor(existing/5) * 6;
-        st.style.left = left + '%';
-        st.style.top = top + '%';
-        selectSticker(st);
-      });
-    });
-
-    // Pointer drag handling (text and sticker) using pointer events and event delegation
-    function pointerDownHandler(e) {
-      // only handle left button or primary pointer
-      if (e.button !== undefined && e.button !== 0) return;
-      let target = e.target;
-      // if clicked inside sticker image, get parent .sticker-layer
-      if (target.closest && target.closest('.sticker-layer')) target = target.closest('.sticker-layer');
-      if (!target) return;
-      if (target.classList.contains('draggable-text') || target.classList.contains('sticker-layer')) {
-        e.preventDefault();
-        activeOverlay = target;
-        // save pre-move state
-        saveHistory(activeOverlay);
-        // select sticker if clicked
-        if (activeOverlay.classList.contains('sticker-layer')) selectSticker(activeOverlay);
-        else { /* text overlays: deselect sticker UI */ activeSticker = null; stickerControls.classList.add('hidden'); }
-
-        const parentRect = previewContainer.getBoundingClientRect();
-        // compute current center based on percent
-        const leftPercent = percentOrDefault(activeOverlay.style.left, 50);
-        const topPercent = percentOrDefault(activeOverlay.style.top, 50);
-        const centerX = parentRect.left + parentRect.width * leftPercent/100;
-        const centerY = parentRect.top + parentRect.height * topPercent/100;
-        const { x, y } = getPointerCoords(e);
-        offset.x = x - centerX;
-        offset.y = y - centerY;
-        activeOverlay.setPointerCapture?.(e.pointerId);
-        activeOverlay.style.zIndex = 50;
-      } else {
-        // clicked outside overlays -> deselect sticker controls
-        if (activeSticker) { activeSticker.classList.remove('selected'); activeSticker = null; stickerControls.classList.add('hidden'); }
-      }
     }
+  });
 
-    function pointerMoveHandler(e) {
-      if (!activeOverlay) return;
-      e.preventDefault();
-      const parentRect = previewContainer.getBoundingClientRect();
-      const { x, y } = getPointerCoords(e);
-      const newCenterX = x - offset.x;
-      const newCenterY = y - offset.y;
-      let leftPct = ((newCenterX - parentRect.left) / parentRect.width) * 100;
-      let topPct = ((newCenterY - parentRect.top) / parentRect.height) * 100;
-      leftPct = clamp(leftPct, 0, 100);
-      topPct = clamp(topPct, 0, 100);
-      activeOverlay.style.left = leftPct.toFixed(2) + '%';
-      activeOverlay.style.top = topPct.toFixed(2) + '%';
-    }
-
-    function pointerUpHandler(e) {
-      if (!activeOverlay) return;
-      activeOverlay.releasePointerCapture?.(e.pointerId);
-      activeOverlay.style.zIndex = ''; // remove explicit z-index; rely on stacking or sticker z
-      activeOverlay = null;
-    }
-
-    // keyboard nudge
-    function overlayKeyHandler(e) {
-      const el = e.currentTarget;
-      const step = e.shiftKey ? 10 : 1;
-      let left = percentOrDefault(el.style.left,50);
-      let top = percentOrDefault(el.style.top,50);
-      let moved = false;
-      if (e.key === 'ArrowLeft') { left -= (step / (previewContainer.clientWidth/100)); moved=true; }
-      if (e.key === 'ArrowRight') { left += (step / (previewContainer.clientWidth/100)); moved=true; }
-      if (e.key === 'ArrowUp') { top -= (step / (previewContainer.clientHeight/100)); moved=true; }
-      if (e.key === 'ArrowDown') { top += (step / (previewContainer.clientHeight/100)); moved=true; }
-      if (moved) {
-        e.preventDefault();
-        saveHistory(el);
-        el.style.left = clamp(left,0,100).toFixed(2) + '%';
-        el.style.top = clamp(top,0,100).toFixed(2) + '%';
-        undoButton.disabled = false;
-      }
-    }
-
-    // Attach global pointer handlers
-    document.addEventListener('pointerdown', pointerDownHandler);
-    document.addEventListener('pointermove', pointerMoveHandler, { passive:false });
-    document.addEventListener('pointerup', pointerUpHandler);
-
-    // Attach keyboard handlers for overlays
-    wishOverlay.addEventListener('keydown', overlayKeyHandler);
-    subOverlay.addEventListener('keydown', overlayKeyHandler);
-
-    // Attach keyboard handlers to sticker layer container (delegation when element focused)
-    stickerLayerContainer.addEventListener('keydown', (e) => {
-      if (e.target && e.target.classList.contains('sticker-layer')) overlayKeyHandler.call(e.target, e);
-    });
-
-    // update text overlay values when inputs change
-    Object.values(inputs).forEach(inp => inp.addEventListener('input', () => updateTextOverlays()));
-
-    // image upload
-    imageUpload.addEventListener('change', (ev) => {
-      const file = ev.target.files && ev.target.files[0];
-      if (!file) return;
-      if (file.size > 8 * 1024 * 1024) {
-        fileWarn.textContent = 'Large image detected (>8MB). Upload may be slow; consider a smaller image.';
-        fileWarn.classList.remove('hidden');
-      } else fileWarn.classList.add('hidden');
-
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        uploadedImage = new Image();
-        uploadedImage.onload = function() {
-          isImageLoaded = true;
-          imagePlaceholder.style.display = 'none';
-          processButton.disabled = false;
-          resizeCanvas();
-          drawImageOnCanvas();
-        };
-        uploadedImage.onerror = function() { console.error('image load error'); };
-        uploadedImage.src = evt.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-
-    // save/load designs with stickers and overlays
-    saveButton.addEventListener('click', () => {
-      const stickerNodes = Array.from(stickerLayerContainer.children).map(el => {
-        const img = el.querySelector('img');
-        // derive CSS percent positions and transform
-        const left = el.style.left || '50%';
-        const top = el.style.top || '50%';
-        // extract scale & rotate from transform using regex
-        const tr = el.style.transform || '';
-        const m = tr.match(/scale\((-?[0-9.]+)\)\s*rotate\((-?[0-9.]+)deg\)/);
-        const scale = m ? parseFloat(m[1]) : 1;
-        const rotate = m ? parseFloat(m[2]) : 0;
-        const z = el.style.zIndex || 2;
-        return { src: img.src, left, top, scale, rotate, z };
-      });
-
-      const state = {
-        imageDataUrl: uploadedImage && uploadedImage.src ? uploadedImage.src : null,
-        aspectRatio: aspectRatio.value,
-        wish: {
-          text: inputs.wishText.value,
-          color: inputs.wishColor.value,
-          size: inputs.wishSize.value,
-          font: inputs.wishFont.value,
-          rotate: inputs.wishRotate.value,
-          strokeEnable: inputs.wishStrokeEnable.checked,
-          strokeColor: inputs.wishStrokeColor.value,
-          strokeWidth: inputs.wishStrokeWidth.value,
-          top: wishOverlay.style.top || '25%',
-          left: wishOverlay.style.left || '50%',
-          transform: wishOverlay.style.transform || ''
-        },
-        sub: {
-          text: inputs.subText.value,
-          color: inputs.subColor.value,
-          size: inputs.subSize.value,
-          font: inputs.subFont.value,
-          rotate: inputs.subRotate.value,
-          strokeEnable: inputs.subStrokeEnable.checked,
-          strokeColor: inputs.subStrokeColor.value,
-          strokeWidth: inputs.subStrokeWidth.value,
-          top: subOverlay.style.top || '80%',
-          left: subOverlay.style.left || '50%',
-          transform: subOverlay.style.transform || ''
-        },
-        stickers: stickerNodes
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      alert('Design saved locally in your browser.');
-    });
-
-    loadButton.addEventListener('click', () => {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) { alert('No saved design found.'); return; }
-      try {
-        const st = JSON.parse(raw);
-        if (st.imageDataUrl) {
-          uploadedImage = new Image();
-          uploadedImage.onload = () => {
-            isImageLoaded = true;
-            imagePlaceholder.style.display = 'none';
-            resizeCanvas();
-            drawImageOnCanvas();
-          };
-          uploadedImage.src = st.imageDataUrl;
-        }
-        if (st.aspectRatio) aspectRatio.value = st.aspectRatio;
-        if (st.wish) {
-          inputs.wishText.value = st.wish.text || inputs.wishText.value;
-          inputs.wishColor.value = st.wish.color || inputs.wishColor.value;
-          inputs.wishSize.value = st.wish.size || inputs.wishSize.value;
-          inputs.wishFont.value = st.wish.font || inputs.wishFont.value;
-          inputs.wishRotate.value = st.wish.rotate || inputs.wishRotate.value;
-          inputs.wishStrokeEnable.checked = st.wish.strokeEnable || false;
-          inputs.wishStrokeColor.value = st.wish.strokeColor || inputs.wishStrokeColor.value;
-          inputs.wishStrokeWidth.value = st.wish.strokeWidth || inputs.wishStrokeWidth.value;
-          wishOverlay.style.top = st.wish.top || wishOverlay.style.top;
-          wishOverlay.style.left = st.wish.left || wishOverlay.style.left;
-          wishOverlay.style.transform = st.wish.transform || wishOverlay.style.transform;
-        }
-        if (st.sub) {
-          inputs.subText.value = st.sub.text || inputs.subText.value;
-          inputs.subColor.value = st.sub.color || inputs.subColor.value;
-          inputs.subSize.value = st.sub.size || inputs.subSize.value;
-          inputs.subFont.value = st.sub.font || inputs.subFont.value;
-          inputs.subRotate.value = st.sub.rotate || inputs.subRotate.value;
-          inputs.subStrokeEnable.checked = st.sub.strokeEnable || false;
-          inputs.subStrokeColor.value = st.sub.strokeColor || inputs.subStrokeColor.value;
-          inputs.subStrokeWidth.value = st.sub.strokeWidth || inputs.subStrokeWidth.value;
-          subOverlay.style.top = st.sub.top || subOverlay.style.top;
-          subOverlay.style.left = st.sub.left || subOverlay.style.left;
-          subOverlay.style.transform = st.sub.transform || subOverlay.style.transform;
-        }
-        // recreate stickers
-        stickerLayerContainer.innerHTML = '';
-        if (st.stickers && Array.isArray(st.stickers)) {
-          st.stickers.forEach(s => {
-            const el = addSticker(s.src, s.left, s.top, s.scale, s.rotate);
-            el.style.zIndex = s.z || 2;
-            // set image natural width if available
-            const img = el.querySelector('img');
-            img.onload = () => { /* optional */ };
-          });
-        }
-        updateTextOverlays();
-        resizeCanvas();
-        alert('Design loaded.');
-      } catch (err) {
-        console.error(err);
-        alert('Failed to load saved design.');
-      }
-    });
-
-    clearSavedBtn.addEventListener('click', () => {
-      localStorage.removeItem(STORAGE_KEY);
-      alert('Saved design cleared.');
-    });
-
-    // help
-    helpBtn.addEventListener('click', () => {
-      alert('Upload an image, add text and stickers, drag to position, use rotate/scale sliders for stickers, and click Generate PNG to export. All processing happens locally in your browser.');
-    });
-
-    // pointer handlers are already added above in code earlier versions; reuse them
-    // but ensure overlays and stickers are focusable for keyboard actions
-    [wishOverlay, subOverlay].forEach(el => {
-      if (!el.style.left) el.style.left = el === wishOverlay ? '50%' : '50%';
-      if (!el.style.top) el.style.top = el === wishOverlay ? '25%' : '80%';
-      el.setAttribute('tabindex','0');
-    });
-
-    // keyboard nudge handlers
-    function overlayKeyHandler(e) {
-      const el = e.currentTarget;
-      const step = e.shiftKey ? 10 : 1;
-      let left = percentOrDefault(el.style.left,50);
-      let top = percentOrDefault(el.style.top,50);
-      let moved = false;
-      if (e.key === 'ArrowLeft') { left -= (step / (previewContainer.clientWidth/100)); moved=true; }
-      if (e.key === 'ArrowRight') { left += (step / (previewContainer.clientWidth/100)); moved=true; }
-      if (e.key === 'ArrowUp') { top -= (step / (previewContainer.clientHeight/100)); moved=true; }
-      if (e.key === 'ArrowDown') { top += (step / (previewContainer.clientHeight/100)); moved=true; }
-      if (moved) {
-        e.preventDefault();
-        saveHistory(el);
-        el.style.left = clamp(left,0,100).toFixed(2)+'%';
-        el.style.top = clamp(top,0,100).toFixed(2)+'%';
-        undoButton.disabled = false;
-      }
-    }
-    wishOverlay.addEventListener('keydown', overlayKeyHandler);
-    subOverlay.addEventListener('keydown', overlayKeyHandler);
-
-    // sticker selection via click: delegate at container
-    stickerLayerContainer.addEventListener('pointerdown', (ev) => {
-      // if clicked inside a sticker, select it (handled in pointerDownHandler too)
-      const st = ev.target.closest && ev.target.closest('.sticker-layer');
-      if (st) {
-        selectSticker(st);
-      } else {
-        if (activeSticker) { activeSticker.classList.remove('selected'); activeSticker=null; stickerControls.classList.add('hidden'); }
-      }
-    });
-
-    // drawing text to export canvas: supports rotation and stroke
-    function drawTextOnCtx(ectx, el, options) {
-      const cssW = canvas.width / dpr;
-      const cssH = canvas.height / dpr;
-      const left = percentOrDefault(el.style.left,50);
-      const top = percentOrDefault(el.style.top,50);
-      const x = (left/100) * cssW;
-      const y = (top/100) * cssH;
-      const fontSize = options.fontSize || parseFloat(window.getComputedStyle(el).fontSize) || 24;
-      let family = 'Inter';
-      if ((options.fontClass||'').includes('oswald')) family='Oswald';
-      else if ((options.fontClass||'').includes('caveat')) family='Caveat';
-      else if ((options.fontClass||'').includes('mono')) family='Roboto Mono';
-      ectx.save();
-      ectx.translate(x,y);
-      ectx.rotate((options.rotateDeg||0) * Math.PI/180);
-      ectx.font = `${fontSize}px ${family}`;
-      ectx.textAlign='center'; ectx.textBaseline='middle';
-      if (options.strokeEnable) {
-        ectx.lineWidth = Math.max(1, options.strokeWidth||1);
-        ectx.strokeStyle = options.strokeColor||'#000';
-        ectx.strokeText(options.text,0,0);
-      }
-      ectx.fillStyle = options.color||'#fff';
-      ectx.fillText(options.text,0,0);
-      ectx.restore();
-    }
-
-    // draw stickers to export canvas
-    function drawStickerOnCtx(ectx, el) {
-      // el contains img child; use its natural size
-      const cssW = canvas.width / dpr;
-      const cssH = canvas.height / dpr;
-      const left = percentOrDefault(el.style.left,50);
-      const top = percentOrDefault(el.style.top,50);
-      const x = (left/100) * cssW;
-      const y = (top/100) * cssH;
-
-      // extract scale & rotate from transform
+  // Save / Load designs
+  saveButton.addEventListener('click', () => {
+    const stickerNodes = Array.from(stickerLayerContainer.children).map(el => {
+      const img = el.querySelector('img');
+      const left = el.style.left || '50%';
+      const top = el.style.top || '50%';
       const tr = el.style.transform || '';
       const m = tr.match(/scale\((-?[0-9.]+)\)\s*rotate\((-?[0-9.]+)deg\)/);
       const scale = m ? parseFloat(m[1]) : 1;
       const rotate = m ? parseFloat(m[2]) : 0;
-
-      const img = el.querySelector('img');
-      if (!img || !img.naturalWidth) {
-        // image may not be loaded yet; skip
-        return;
-      }
-      // we used CSS width to size sticker; compute its CSS width from img.style.width (e.g. '96px')
-      let cssImgWidth = parseFloat(img.style.width) || img.naturalWidth * 0.15; // fallback
-      const cssImgHeight = cssImgWidth * (img.naturalHeight / img.naturalWidth);
-      // draw at center: we need top-left in CSS coords
-      const leftPx = x - (cssImgWidth/2);
-      const topPx  = y - (cssImgHeight/2);
-
-      ectx.save();
-      ectx.translate(x, y);
-      ectx.rotate(rotate * Math.PI/180);
-      ectx.scale(scale, scale);
-      // when scaled, we must multiply by 1/scale to get correct drawing box after transform - simpler: draw centered at 0,0 with width cssImgWidth
-      // drawImage uses top-left, so draw at -cssImgWidth/2, -cssImgHeight/2
-      ectx.drawImage(img, -cssImgWidth/2, -cssImgHeight/2, cssImgWidth, cssImgHeight);
-      ectx.restore();
-    }
-
-    // generate final exported PNG (draw image, texts, stickers)
-    function generateFinalImage() {
-      if (!isImageLoaded) return;
-      const exportScale = parseFloat(exportDpr.value) || 2;
-      const cssW = canvas.width / dpr;
-      const cssH = canvas.height / dpr;
-      const exportCanvas = document.createElement('canvas');
-      exportCanvas.width = Math.round(cssW * exportScale);
-      exportCanvas.height = Math.round(cssH * exportScale);
-      const ectx = exportCanvas.getContext('2d', { alpha: false });
-      // scale so CSS px mapped to export pixels
-      ectx.setTransform(exportScale, 0, 0, exportScale, 0, 0);
-
-      // draw background image center-crop
-      const iw = uploadedImage.width, ih = uploadedImage.height;
-      const scale = Math.max(cssW / iw, cssH / ih);
-      const tW = iw * scale, tH = ih * scale;
-      const x = (cssW - tW) / 2, y = (cssH - tH) / 2;
-      ectx.clearRect(0,0,cssW,cssH);
-      ectx.drawImage(uploadedImage, x, y, tW, tH);
-
-      // draw stickers first or after texts depending on z-order; we'll draw in DOM stacking order: stickerLayerContainer children (lowest first)
-      // collect sticker elements
-      const stickerEls = Array.from(stickerLayerContainer.children);
-      // sort by z (numeric)
-      stickerEls.sort((a,b)=> (parseInt(a.style.zIndex||2) - parseInt(b.style.zIndex||2)));
-
-      // draw stickers
-      stickerEls.forEach(el => drawStickerOnCtx(ectx, el));
-
-      // draw texts: wish then sub (we'll draw both)
-      drawTextOnCtx(ectx, wishOverlay, {
-        text: inputs.wishText.value,
-        color: inputs.wishColor.value,
-        fontSize: parseFloat(inputs.wishSize.value),
-        fontClass: inputs.wishFont.value,
-        rotateDeg: parseFloat(inputs.wishRotate.value),
-        strokeEnable: inputs.wishStrokeEnable.checked,
-        strokeColor: inputs.wishStrokeColor.value,
-        strokeWidth: parseFloat(inputs.wishStrokeWidth.value)
-      });
-      drawTextOnCtx(ectx, subOverlay, {
-        text: inputs.subText.value,
-        color: inputs.subColor.value,
-        fontSize: parseFloat(inputs.subSize.value),
-        fontClass: inputs.subFont.value,
-        rotateDeg: parseFloat(inputs.subRotate.value),
-        strokeEnable: inputs.subStrokeEnable.checked,
-        strokeColor: inputs.subStrokeColor.value,
-        strokeWidth: parseFloat(inputs.subStrokeWidth.value)
-      });
-
-      const dataUrl = exportCanvas.toDataURL('image/png');
-      finalImagePreview.src = dataUrl;
-      finalImagePreview.style.display = 'block';
-      downloadLink.href = dataUrl;
-      outputArea.classList.remove('hidden');
-      finalImagePreview.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    // apply text overlays and redraw (for preview)
-    function applyTextAndPreview() {
-      // draw image then optionally draw (preview) text on canvas (for preview only we use CSS scaled ctx)
-      drawImageOnCanvas();
-      // draw texts onto canvas in preview (we'll use same functions as export but draw on scaled ctx)
-      // Wish text
-      drawTextOnCanvasPreview(wishOverlay, {
-        text: inputs.wishText.value,
-        color: inputs.wishColor.value,
-        fontSize: parseFloat(inputs.wishSize.value),
-        fontClass: inputs.wishFont.value,
-        rotateDeg: parseFloat(inputs.wishRotate.value),
-        strokeEnable: inputs.wishStrokeEnable.checked,
-        strokeColor: inputs.wishStrokeColor.value,
-        strokeWidth: parseFloat(inputs.wishStrokeWidth.value)
-      });
-      // Sub text
-      drawTextOnCanvasPreview(subOverlay, {
-        text: inputs.subText.value,
-        color: inputs.subColor.value,
-        fontSize: parseFloat(inputs.subSize.value),
-        fontClass: inputs.subFont.value,
-        rotateDeg: parseFloat(inputs.subRotate.value),
-        strokeEnable: inputs.subStrokeEnable.checked,
-        strokeColor: inputs.subStrokeColor.value,
-        strokeWidth: parseFloat(inputs.subStrokeWidth.value)
-      });
-      // Note: stickers are DOM elements on top of canvas for visual editing; canvas preview draws only image+text.
-    }
-
-    // draw text on preview canvas (ctx is already scaled by dpr via setTransform)
-    function drawTextOnCanvasPreview(el, options) {
-      const cssW = canvas.width / dpr;
-      const cssH = canvas.height / dpr;
-      const left = percentOrDefault(el.style.left,50);
-      const top = percentOrDefault(el.style.top,50);
-      const x = (left/100) * cssW;
-      const y = (top/100) * cssH;
-      const fontSize = options.fontSize || parseFloat(window.getComputedStyle(el).fontSize) || 24;
-      let family = 'Inter';
-      if ((options.fontClass||'').includes('oswald')) family='Oswald';
-      else if ((options.fontClass||'').includes('caveat')) family='Caveat';
-      else if ((options.fontClass||'').includes('mono')) family='Roboto Mono';
-
-      ctx.save();
-      ctx.translate(x,y);
-      ctx.rotate((options.rotateDeg||0) * Math.PI/180);
-      ctx.font = `${fontSize}px ${family}`;
-      ctx.textAlign='center'; ctx.textBaseline='middle';
-      if (options.strokeEnable) {
-        ctx.lineWidth = Math.max(1, options.strokeWidth||1);
-        ctx.strokeStyle = options.strokeColor||'#000';
-        ctx.strokeText(options.text,0,0);
-      }
-      ctx.fillStyle = options.color||'#fff';
-      ctx.fillText(options.text,0,0);
-      ctx.restore();
-    }
-
-    // Events: aspect change, resize
-    aspectRatio.addEventListener('change', () => {
-      resizeCanvas();
-      // stickers/text positions are percentage-based so no change needed
+      const z = el.style.zIndex || 3;
+      return { src: img.src, left, top, scale, rotate, z };
     });
-    window.addEventListener('resize', debounce(()=> { resizeCanvas(); applyTextAndPreview(); }, 120));
-
-    // draw preview when text inputs change
-    Object.values(inputs).forEach(inp => inp.addEventListener('input', () => {
-      updateTextOverlays();
-      applyTextAndPreview();
-    }));
-
-    // image upload handled earlier; enable generate button when image ready
-    const enableProcessWhenReady = () => {
-      processButton.disabled = !isImageLoaded;
+    const state = {
+      imageDataUrl: uploadedImage && uploadedImage.src ? uploadedImage.src : null,
+      aspectRatio: aspectRatio.value,
+      wish: {
+        text: inputs.wishText.value,
+        color: inputs.wishColor.value,
+        size: inputs.wishSize.value,
+        font: inputs.wishFont.value,
+        rotate: inputs.wishRotate.value,
+        strokeEnable: inputs.wishStrokeEnable.checked,
+        strokeColor: inputs.wishStrokeColor.value,
+        strokeWidth: inputs.wishStrokeWidth.value,
+        top: wishOverlay.style.top || '25%',
+        left: wishOverlay.style.left || '50%',
+        transform: wishOverlay.style.transform || ''
+      },
+      sub: {
+        text: inputs.subText.value,
+        color: inputs.subColor.value,
+        size: inputs.subSize.value,
+        font: inputs.subFont.value,
+        rotate: inputs.subRotate.value,
+        strokeEnable: inputs.subStrokeEnable.checked,
+        strokeColor: inputs.subStrokeColor.value,
+        strokeWidth: inputs.subStrokeWidth.value,
+        top: subOverlay.style.top || '80%',
+        left: subOverlay.style.left || '50%',
+        transform: subOverlay.style.transform || ''
+      },
+      stickers: stickerNodes
     };
-    setInterval(enableProcessWhenReady, 400);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    alert('Design saved locally in your browser.');
+  });
 
-    // attach pointer handlers for sticker selection and dragging (global handlers)
-    document.addEventListener('pointerdown', pointerDownHandler);
-    document.addEventListener('pointermove', pointerMoveHandler, { passive:false });
-    document.addEventListener('pointerup', pointerUpHandler);
-
-    // small helper to parse pointer coords (works with pointer events)
-    function getPointerCoords(e) { return { x: e.clientX ?? 0, y: e.clientY ?? 0 }; }
-
-    // ensure sticker elements are focusable after created (we add in addSticker)
-    // but also allow clicking the images themselves
-    stickerLayerContainer.addEventListener('click', (ev) => {
-      const st = ev.target.closest && ev.target.closest('.sticker-layer');
-      if (st) selectSticker(st);
-    });
-
-    // delete sticker quick key (Delete)
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Delete' && activeSticker) {
-        activeSticker.remove();
-        activeSticker = null; stickerControls.classList.add('hidden');
+  loadButton.addEventListener('click', () => {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) { alert('No saved design found.'); return; }
+    try {
+      const st = JSON.parse(raw);
+      if (st.imageDataUrl) {
+        uploadedImage = new Image();
+        uploadedImage.onload = () => { isImageLoaded = true; imagePlaceholder.style.display='none'; resizeCanvas(); drawImageOnCanvas(); applyTextAndPreview(); };
+        uploadedImage.src = st.imageDataUrl;
       }
-    });
+      if (st.aspectRatio) aspectRatio.value = st.aspectRatio;
+      if (st.wish) {
+        inputs.wishText.value = st.wish.text || inputs.wishText.value;
+        inputs.wishColor.value = st.wish.color || inputs.wishColor.value;
+        inputs.wishSize.value = st.wish.size || inputs.wishSize.value;
+        inputs.wishFont.value = st.wish.font || inputs.wishFont.value;
+        inputs.wishRotate.value = st.wish.rotate || inputs.wishRotate.value;
+        inputs.wishStrokeEnable.checked = st.wish.strokeEnable || false;
+        inputs.wishStrokeColor.value = st.wish.strokeColor || inputs.wishStrokeColor.value;
+        inputs.wishStrokeWidth.value = st.wish.strokeWidth || inputs.wishStrokeWidth.value;
+        wishOverlay.style.top = st.wish.top || wishOverlay.style.top;
+        wishOverlay.style.left = st.wish.left || wishOverlay.style.left;
+        wishOverlay.style.transform = st.wish.transform || wishOverlay.style.transform;
+      }
+      if (st.sub) {
+        inputs.subText.value = st.sub.text || inputs.subText.value;
+        inputs.subColor.value = st.sub.color || inputs.subColor.value;
+        inputs.subSize.value = st.sub.size || inputs.subSize.value;
+        inputs.subFont.value = st.sub.font || inputs.subFont.value;
+        inputs.subRotate.value = st.sub.rotate || inputs.subRotate.value;
+        inputs.subStrokeEnable.checked = st.sub.strokeEnable || false;
+        inputs.subStrokeColor.value = st.sub.strokeColor || inputs.subStrokeColor.value;
+        inputs.subStrokeWidth.value = st.sub.strokeWidth || inputs.subStrokeWidth.value;
+        subOverlay.style.top = st.sub.top || subOverlay.style.top;
+        subOverlay.style.left = st.sub.left || subOverlay.style.left;
+        subOverlay.style.transform = st.sub.transform || subOverlay.style.transform;
+      }
+      // stickers
+      stickerLayerContainer.innerHTML = '';
+      if (st.stickers && Array.isArray(st.stickers)) {
+        st.stickers.forEach(s => {
+          const el = addSticker(s.src, s.left, s.top, s.scale, s.rotate);
+          el.style.zIndex = s.z || 3;
+        });
+      }
+      updateTextOverlays();
+      resizeCanvas();
+      alert('Design loaded.');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to load saved design.');
+    }
+  });
 
-    // generate button
-    processButton.addEventListener('click', () => { generateFinalImage(); });
+  clearSavedBtn.addEventListener('click', () => {
+    localStorage.removeItem(STORAGE_KEY);
+    alert('Saved design cleared.');
+  });
 
-    // reset & undo
-    resetButton.addEventListener('click', resetAll);
-    undoButton.addEventListener('click', undoLastMove);
+  // help modal (simple)
+  helpBtn.addEventListener('click', () => {
+    const msg = `Use Wish Weaver:\n\n1. Upload an image.\n2. Choose aspect ratio and DPI.\n3. Edit main and sub text, pick fonts, rotate, and add optional stroke.\n4. Add stickers from the picker (click to add). Select stickers to scale/rotate/delete.\n5. Drag text and stickers to position. Use arrow keys to nudge (Shift for larger steps).\n6. Click Generate PNG to export. All processing happens locally in your browser.`;
+    alert(msg);
+  });
 
-    // initial setup
-    updateTextOverlays();
-    resizeCanvas();
+  // enable generate when image loaded
+  function updateButtonsState() {
+    undoButton.disabled = historyStack.length === 0;
+    processButton.disabled = !isImageLoaded;
+  }
+  setInterval(updateButtonsState, 400);
 
-    // ensure sticker controls hide when nothing selected
-    stickerControls.classList.add('hidden');
+  // attach small keyboard handler for sticker container (nudge)
+  stickerLayerContainer.addEventListener('keydown', (e) => {
+    if (e.target && e.target.classList.contains('sticker-layer')) overlayKeyHandler.call(e.target, e);
+  });
 
-    // small accessibility: footer link click area already exists; no extra code needed.
+  // overlayKeyHandler re-used for stickers too
+  function overlayKeyHandler(e) {
+    const el = e.currentTarget;
+    const step = e.shiftKey ? 10 : 1;
+    let left = percentOrDefault(el.style.left,50);
+    let top = percentOrDefault(el.style.top,50);
+    let moved = false;
+    if (e.key === 'ArrowLeft') { left -= (step / (previewContainer.clientWidth/100)); moved=true; }
+    if (e.key === 'ArrowRight') { left += (step / (previewContainer.clientWidth/100)); moved=true; }
+    if (e.key === 'ArrowUp') { top -= (step / (previewContainer.clientHeight/100)); moved=true; }
+    if (e.key === 'ArrowDown') { top += (step / (previewContainer.clientHeight/100)); moved=true; }
+    if (moved) {
+      e.preventDefault();
+      saveHistory(el);
+      el.style.left = clamp(left,0,100).toFixed(2)+'%';
+      el.style.top = clamp(top,0,100).toFixed(2)+'%';
+      undoButton.disabled = false;
+    }
+  }
 
-    // Expose pointerDownHandler etc inside current scope for earlier delegated listeners to work
-    function pointerDownHandler(e){ /* implemented earlier above to ensure consistent closure scope */ }
-    // The real pointerDownHandler is defined above before attaching listeners; no-op fallback here.
+  // generate button click
+  processButton.addEventListener('click', () => generateFinalImage());
 
-    // Note: To keep the code compact and avoid duplicate function definitions, pointer handlers are the functions defined above (pointerDownHandler, pointerMoveHandler, pointerUpHandler).
-    // Because we attached them previously, no further action required.
+  // reset & undo hooks
+  resetButton.addEventListener('click', resetAll);
+  undoButton.addEventListener('click', undoLastMove);
 
-    // END of script.
+  // initial setup
+  updateTextOverlays();
+  resizeCanvas();
+
+  // ensure clickability: prevent overlay pointer events from being swallowed by other elements
+  // (above pointer handlers are authoritative)
+
+  // Footer link: no extra code needed; it's a normal anchor.
+
+  // Done.
   </script>
 </body>
 </html>
