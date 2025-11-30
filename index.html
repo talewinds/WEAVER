@@ -186,7 +186,7 @@
 
         <div>
           <label class="text-sm block mb-1">Main Wish</label>
-          <input id="wishText" class="w-full p-2 border rounded" maxlength="100" value="Happy Moments!" />
+          <textarea id="wishText" class="w-full p-2 border rounded resize-y h-20" maxlength="300" rows="3" placeholder="Type your wish — press Enter for new line">Happy Moments!</textarea>
           <div class="flex items-center gap-2 mt-2">
             <input id="wishColor" type="color" value="#ffffff" title="Wish color" />
             <input id="wishSize" type="number" min="14" max="200" value="48" class="w-20 p-1 border rounded text-center" title="Font size" />
@@ -883,7 +883,8 @@ function drawTextOnExportCtx(ectx, el, options) {
   const x = (left/100) * cssW;
   const y = (top/100) * cssH;
 
-  // Prefer the overlay's actual text (preserves any manual newlines), fallback to options.text
+  // Prefer the overlay's actual rendered text (preserves any manual newlines),
+  // fallback to options.text if needed.
   const rawText = String((el && el.textContent) ? el.textContent : (options.text || ''));
 
   const fontSize = options.fontSize || parseFloat(window.getComputedStyle(el).fontSize) || 24;
@@ -892,7 +893,13 @@ function drawTextOnExportCtx(ectx, el, options) {
   else if ((options.fontClass||'').includes('caveat')) family='Caveat';
   else if ((options.fontClass||'').includes('mono')) family='Roboto Mono';
 
-  // helper to wrap a single paragraph into lines
+  // Use the overlay's clientWidth to match preview wrapping. Convert to export coords
+  // (el.clientWidth is in CSS px for the preview area which maps 1:1 to cssW units).
+  let wrapWidth = (el && el.clientWidth) ? el.clientWidth : Math.max(40, cssW - Math.max(16, cssW * 0.04));
+  // ensure wrapWidth not bigger than canvas
+  wrapWidth = Math.min(wrapWidth, cssW - 8);
+
+  // helper: wrap a single paragraph into lines using the ectx measurement
   function wrapParagraph(ctx, text, maxWidth) {
     const words = text.split(/\s+/).filter(Boolean);
     const lines = [];
@@ -908,7 +915,6 @@ function drawTextOnExportCtx(ectx, el, options) {
     return lines;
   }
 
-  // break text into paragraphs by explicit newlines, then wrap each paragraph
   ectx.save();
   ectx.translate(x,y);
   ectx.rotate((options.rotateDeg||0) * Math.PI/180);
@@ -916,21 +922,18 @@ function drawTextOnExportCtx(ectx, el, options) {
   ectx.textAlign = 'center';
   ectx.textBaseline = 'middle';
 
-  // compute wrapping width (leave margins)
-  const margin = Math.max(16, cssW * 0.04);
-  const maxTextWidth = Math.max(40, cssW - (margin * 2));
-
+  // split into paragraphs by explicit newlines, then wrap each paragraph to overlay width
   const paragraphs = rawText.split(/\r?\n/);
   const lines = [];
   for (let p of paragraphs) {
     p = p.replace(/^\s+|\s+$/g, ''); // trim
     if (p === '') { lines.push(''); continue; }
-    const wrapped = wrapParagraph(ectx, p, maxTextWidth);
+    const wrapped = wrapParagraph(ectx, p, wrapWidth);
     wrapped.forEach(l => lines.push(l));
   }
 
-  // line height and vertical alignment (center the block)
-  const lineHeight = Math.max(fontSize * 1.1, 1.1 * fontSize);
+  // compute line height and vertical start so block is centered at overlay position
+  const lineHeight = Math.max(fontSize * 1.12, 1.12 * fontSize);
   const totalHeight = lines.length * lineHeight;
   let startY = - (totalHeight / 2) + (lineHeight / 2);
 
@@ -952,7 +955,6 @@ function drawTextOnExportCtx(ectx, el, options) {
 
   ectx.restore();
 }
-
 
   function drawStickerOnExportCtx(ectx, el) {
     // we now support emoji-based stickers (text). Draw the emoji on canvas.
