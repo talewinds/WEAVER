@@ -4,43 +4,45 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Wish Weaver — Digital Card Creator</title>
-
-  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Oswald:wght@400;700&family=Caveat:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
-
   <style>
-    /* --- fonts for HTML overlays --- */
     .font-inter { font-family: 'Inter', sans-serif; }
     .font-oswald { font-family: 'Oswald', sans-serif; }
     .font-caveat { font-family: 'Caveat', cursive; }
     .font-mono { font-family: 'Roboto Mono', monospace; }
 
-    /* draggable overlay */
     .draggable-text {
       position: absolute;
       cursor: grab;
       user-select: none;
       -webkit-user-select: none;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.45);
       padding: 6px 10px;
       border: 2px dashed rgba(255,255,255,0.5);
-      transform: translate(-50%, -50%); /* center on the point */
+      transform: translate(-50%, -50%);
       transition: opacity 0.15s, transform 0.1s;
       max-width: 90%;
       overflow-wrap: break-word;
       z-index: 1;
-      touch-action: none; /* important to avoid scrolling while dragging */
+      touch-action: none;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.45);
     }
     .draggable-text:active { cursor: grabbing; }
+    .sticker-layer {
+      position: absolute;
+      touch-action: none;
+      transform-origin: center center;
+      z-index: 2;
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: grab;
+    }
+    .sticker-layer img { display:block; max-width:100%; height:auto; pointer-events: none; }
 
-    /* preview container */
     #previewContainer { touch-action: none; }
 
-    /* subtle focus outline for keyboard users */
-    .draggable-text:focus { outline: 2px dashed rgba(30,64,175,0.85); outline-offset: 6px; }
+    .draggable-text:focus, .sticker-layer:focus { outline: 2px dashed rgba(30,64,175,0.85); outline-offset: 6px; }
 
-    /* custom scrollbar */
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
     ::-webkit-scrollbar-track { background: #f0f4f8; }
@@ -48,7 +50,6 @@
 </head>
 <body class="bg-gray-50 font-inter text-gray-800 min-h-screen flex flex-col">
 
-  <!-- Header -->
   <header class="bg-blue-900 text-white">
     <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
       <h1 class="text-2xl font-bold"><span class="text-yellow-300">W</span>ish <span class="text-yellow-300">W</span>eaver</h1>
@@ -61,11 +62,11 @@
     </div>
   </header>
 
-  <!-- Main -->
   <main class="max-w-6xl mx-auto w-full flex-grow grid lg:grid-cols-3 gap-8 p-6">
 
-    <!-- Left controls -->
+    <!-- Controls -->
     <section class="lg:col-span-1 space-y-6">
+
       <div class="p-6 bg-white rounded-xl shadow">
         <h2 class="font-bold text-lg text-blue-800 mb-3">1. Choose Canvas</h2>
         <input id="imageUpload" type="file" accept="image/*" aria-label="Upload image" class="w-full text-sm" />
@@ -91,8 +92,6 @@
       <!-- Text customization -->
       <div class="p-6 bg-white rounded-xl shadow space-y-4">
         <h2 class="font-bold text-lg text-blue-800">2. Customize Text</h2>
-
-        <!-- Main wish -->
         <div>
           <label class="text-sm block mb-1">Main Wish</label>
           <input id="wishText" class="w-full p-2 border rounded" maxlength="100" value="Happy Moments!" />
@@ -106,17 +105,15 @@
               <option value="font-mono">Roboto Mono</option>
             </select>
           </div>
-
           <div class="mt-2 flex items-center gap-2 text-sm">
             <label class="flex items-center gap-1"><input id="wishStrokeEnable" type="checkbox" /> Stroke</label>
-            <input id="wishStrokeColor" type="color" value="#000000" title="Stroke color" />
+            <input id="wishStrokeColor" type="color" value="#000000" />
             <input id="wishStrokeWidth" type="number" min="0" max="20" value="2" class="w-20 p-1 border rounded text-center" />
             <label class="ml-auto text-xs text-gray-500">Rotate:</label>
             <input id="wishRotate" type="range" min="-180" max="180" value="0" class="w-32" />
           </div>
         </div>
 
-        <!-- Sub text -->
         <div>
           <label class="text-sm block mb-1">Sub Text (max 20 words)</label>
           <textarea id="subText" class="w-full p-2 border rounded" rows="2">Wishing you a wonderful day filled with joy and laughter!</textarea>
@@ -138,10 +135,38 @@
             <input id="subRotate" type="range" min="-180" max="180" value="0" class="w-32" />
           </div>
         </div>
-
       </div>
 
-      <!-- quick actions -->
+      <!-- Sticker picker -->
+      <div class="p-6 bg-white rounded-xl shadow">
+        <h2 class="font-bold text-lg text-blue-800 mb-3">3. Stickers</h2>
+        <p class="text-sm text-gray-600 mb-2">Click a sticker to add it to the canvas.</p>
+        <div id="stickerPalette" class="grid grid-cols-4 gap-2">
+          <!-- curated Twemoji PNGs -->
+          <button class="sticker-thumb p-1 bg-white rounded border" data-src="https://twemoji.maxcdn.com/v/latest/72x72/1f389.png"><img src="https://twemoji.maxcdn.com/v/latest/72x72/1f389.png" alt="party" class="w-12 h-12" /></button>
+          <button class="sticker-thumb p-1 bg-white rounded border" data-src="https://twemoji.maxcdn.com/v/latest/72x72/1f381.png"><img src="https://twemoji.maxcdn.com/v/latest/72x72/1f381.png" alt="gift" class="w-12 h-12" /></button>
+          <button class="sticker-thumb p-1 bg-white rounded border" data-src="https://twemoji.maxcdn.com/v/latest/72x72/1f382.png"><img src="https://twemoji.maxcdn.com/v/latest/72x72/1f382.png" alt="cake" class="w-12 h-12" /></button>
+          <button class="sticker-thumb p-1 bg-white rounded border" data-src="https://twemoji.maxcdn.com/v/latest/72x72/1f496.png"><img src="https://twemoji.maxcdn.com/v/latest/72x72/1f496.png" alt="sparkling heart" class="w-12 h-12" /></button>
+        </div>
+
+        <!-- sticker controls for selected sticker -->
+        <div id="stickerControls" class="mt-4 hidden space-y-2">
+          <p class="text-sm">Selected Sticker Controls</p>
+          <div class="flex items-center gap-2">
+            <label class="text-xs">Scale</label>
+            <input id="stickerScale" type="range" min="0.2" max="3" step="0.05" value="1" class="flex-1" />
+            <label class="text-xs">Rotate</label>
+            <input id="stickerRotate" type="range" min="-180" max="180" value="0" class="w-32" />
+          </div>
+          <div class="flex gap-2">
+            <button id="bringForward" class="px-3 py-1 bg-white rounded border">Bring Forward</button>
+            <button id="sendBack" class="px-3 py-1 bg-white rounded border">Send Back</button>
+            <button id="deleteSticker" class="px-3 py-1 bg-red-100 text-red-700 rounded border">Delete</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
       <div class="p-6 bg-white rounded-xl shadow flex flex-col gap-3">
         <button id="resetButton" class="px-4 py-2 rounded bg-gray-200">Reset All</button>
         <div class="flex gap-2">
@@ -151,16 +176,14 @@
       </div>
     </section>
 
-    <!-- Right: preview -->
+    <!-- Preview -->
     <section class="lg:col-span-2">
       <div class="bg-white rounded-xl shadow p-4">
-        <h2 class="font-bold text-lg text-green-700 mb-3">3. Live Preview</h2>
-
-        <div id="previewContainer" class="relative mx-auto overflow-hidden rounded-lg bg-gray-200 border-4 border-blue-800 max-w-2xl"
-             style="aspect-ratio: 1 / 1; width:100%;">
+        <h2 class="font-bold text-lg text-green-700 mb-3">Live Preview</h2>
+        <div id="previewContainer" class="relative mx-auto overflow-hidden rounded-lg bg-gray-200 border-4 border-blue-800 max-w-2xl" style="aspect-ratio: 1 / 1; width:100%;">
           <canvas id="cardCanvas" class="w-full h-full"></canvas>
 
-          <!-- Draggable overlays -->
+          <!-- text overlays -->
           <div id="wishOverlay" class="draggable-text font-oswald text-white" tabindex="0"
                style="top:25%; left:50%; font-size:48px; transform: translate(-50%, -50%) rotate(0deg);">
             Happy Moments!
@@ -170,6 +193,9 @@
                style="top:80%; left:50%; font-size:20px; transform: translate(-50%, -50%) rotate(0deg);">
             Wishing you a wonderful day filled with joy and laughter!
           </div>
+
+          <!-- stickers will be inserted here as .sticker-layer elements -->
+          <div id="stickerLayerContainer"></div>
 
           <div id="imagePlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500 pointer-events-none">
             <svg class="w-16 h-16 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 003-2V6a2 2 0 00-2-2H6"></path></svg>
@@ -190,20 +216,10 @@
   </main>
 
   <footer class="text-center text-xs text-gray-500 py-6">
-    &copy; 2025 Wish Weaver — Local, Private, Fast
+    designed by <a id="weaverLink" href="https://weaver.example.com" target="_blank" rel="noopener" class="text-blue-700 underline">weaver</a> — &copy; 2025 Wish Weaver
   </footer>
 
-  <!-- SCRIPT -->
   <script>
-    /*****************************************************************
-     * Wish Weaver - Single file updated build
-     * - Robust DPR handling using ctx.setTransform(dpr,0,0,dpr,0,0)
-     * - Pointer events for drag
-     * - Rotate + stroke controls
-     * - Undo (move), Reset
-     * - Save / Load from localStorage (image dataURL + overlays + inputs)
-     *****************************************************************/
-
     // Elements
     const canvas = document.getElementById('cardCanvas');
     const ctx = canvas.getContext('2d', { alpha: false });
@@ -218,11 +234,17 @@
     const exportDpr = document.getElementById('exportDpr');
     const fileWarn = document.getElementById('fileWarn');
 
-    // Overlays
     const wishOverlay = document.getElementById('wishOverlay');
     const subOverlay = document.getElementById('subOverlay');
+    const stickerPalette = document.getElementById('stickerPalette');
+    const stickerLayerContainer = document.getElementById('stickerLayerContainer');
+    const stickerControls = document.getElementById('stickerControls');
+    const stickerScale = document.getElementById('stickerScale');
+    const stickerRotate = document.getElementById('stickerRotate');
+    const deleteStickerBtn = document.getElementById('deleteSticker');
+    const bringForwardBtn = document.getElementById('bringForward');
+    const sendBackBtn = document.getElementById('sendBack');
 
-    // Inputs
     const inputs = {
       wishText: document.getElementById('wishText'),
       wishColor: document.getElementById('wishColor'),
@@ -251,41 +273,42 @@
     const helpBtn = document.getElementById('helpButton');
 
     // State
-    let dpr = parseFloat(window.devicePixelRatio || 1); // default current DPR
-    let activeOverlay = null;
-    let offset = { x: 0, y: 0 }; // offset between pointer and overlay center
+    let dpr = parseFloat(window.devicePixelRatio || 1);
     let uploadedImage = new Image();
     let isImageLoaded = false;
-    let historyStack = []; // simple undo for moves
-    const MAX_HISTORY = 20;
-    const STORAGE_KEY = 'wishweaver_saved_design_v1';
+    let activeOverlay = null; // current element being dragged (text or sticker)
+    let activeSticker = null; // DOM element for selected sticker (for controls)
+    let offset = { x: 0, y: 0 }; // pointer offset to center
+    let historyStack = [];
+    const MAX_HISTORY = 30;
+    const STORAGE_KEY = 'wishweaver_saved_design_v2';
 
-    // SAFETY: enforce word limit for subText
-    function enforceSubTextLimit() {
-      const words = inputs.subText.value.trim().split(/\s+/).filter(Boolean);
-      if (words.length > 20) {
-        inputs.subText.value = words.slice(0,20).join(' ');
-      }
-    }
-
-    // Convert percent string to number safely
+    // ---- helpers ----
     function percentOrDefault(val, def=50) {
       const n = parseFloat(val);
       return Number.isFinite(n) ? n : def;
     }
+    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+    function debounce(fn, ms=100) { let t; return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);} }
 
-    // Update overlay DOMs from input values
+    // swap font class
+    function swapFontClass(el, newFont) {
+      const fonts = ['font-oswald','font-caveat','font-inter','font-mono'];
+      fonts.forEach(f=>el.classList.remove(f));
+      el.classList.add(newFont);
+    }
+
+    // update overlay text UI
     function updateTextOverlays() {
-      // Wish
+      // wish
       wishOverlay.textContent = inputs.wishText.value;
       wishOverlay.style.color = inputs.wishColor.value;
       wishOverlay.style.fontSize = inputs.wishSize.value + 'px';
       swapFontClass(wishOverlay, inputs.wishFont.value);
       wishOverlay.style.transform = `translate(-50%, -50%) rotate(${inputs.wishRotate.value}deg)`;
-      // stroke inputs only used on canvas export
-
-      // Sub
-      enforceSubTextLimit();
+      // sub
+      const words = inputs.subText.value.trim().split(/\s+/).filter(Boolean);
+      if (words.length > 20) inputs.subText.value = words.slice(0,20).join(' ');
       subOverlay.textContent = inputs.subText.value;
       subOverlay.style.color = inputs.subColor.value;
       subOverlay.style.fontSize = inputs.subSize.value + 'px';
@@ -293,83 +316,59 @@
       subOverlay.style.transform = `translate(-50%, -50%) rotate(${inputs.subRotate.value}deg)`;
     }
 
-    // Swap font classes (preserve other classes)
-    function swapFontClass(el, newFont) {
-      const fonts = ['font-oswald','font-caveat','font-inter','font-mono'];
-      fonts.forEach(f => el.classList.remove(f));
-      el.classList.add(newFont);
-    }
-
-    // Resize canvas and set transform safely (setTransform replaces any previous transform)
+    // canvas resize: set pixel buffer scaled by DPR (no cumulative scaling)
     function resizeCanvas() {
-      // read target CSS size from container width and aspect ratio
-      const cssWidth = previewContainer.clientWidth;
+      const cssW = previewContainer.clientWidth;
       const [w,h] = aspectRatio.value.split(':').map(Number);
-      const cssHeight = Math.round(cssWidth * (h / w));
-
-      // set CSS sizes
-      previewContainer.style.height = cssHeight + 'px';
-      canvas.style.width = cssWidth + 'px';
-      canvas.style.height = cssHeight + 'px';
-
-      // choose DPR for rendering — for preview we use current device DPR; export may use chosen DPR later
+      const cssH = Math.round(cssW * (h / w));
+      previewContainer.style.height = cssH + 'px';
+      canvas.style.width = cssW + 'px';
+      canvas.style.height = cssH + 'px';
+      // keep backing ratio for preview using device DPR
       dpr = parseFloat(window.devicePixelRatio || 1);
-
-      // set canvas internal buffer size (pixels)
-      canvas.width = Math.round(cssWidth * dpr);
-      canvas.height = Math.round(cssHeight * dpr);
-
-      // IMPORTANT: set transform so drawing in CSS px maps to scaled pixels. Use setTransform to avoid accumulation.
+      canvas.width = Math.round(cssW * dpr);
+      canvas.height = Math.round(cssH * dpr);
+      // set transform so drawing in CSS px maps to device px
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      // clear canvas (in CSS px units because transform maps coordinates)
-      ctx.clearRect(0, 0, cssWidth, cssHeight);
-
+      ctx.clearRect(0,0,cssW,cssH);
       if (isImageLoaded) drawImageOnCanvas();
     }
 
-    // Draw image on canvas using CSS coordinates (setTransform scales it)
+    // draw uploaded image center-crop using CSS coords (ctx already scaled)
     function drawImageOnCanvas() {
       if (!isImageLoaded) return;
       const cssW = canvas.width / dpr;
       const cssH = canvas.height / dpr;
-      const imgW = uploadedImage.width;
-      const imgH = uploadedImage.height;
-
-      // scale to cover (center-crop)
-      const scale = Math.max(cssW / imgW, cssH / imgH);
-      const tW = imgW * scale;
-      const tH = imgH * scale;
-      const x = (cssW - tW) / 2;
-      const y = (cssH - tH) / 2;
-
-      // draw using CSS coords — transform will scale to device pixels
-      ctx.clearRect(0, 0, cssW, cssH);
+      const iw = uploadedImage.width, ih = uploadedImage.height;
+      const scale = Math.max(cssW / iw, cssH / ih);
+      const tW = iw * scale, tH = ih * scale;
+      const x = (cssW - tW) / 2, y = (cssH - tH) / 2;
+      ctx.clearRect(0,0,cssW,cssH);
       ctx.drawImage(uploadedImage, x, y, tW, tH);
     }
 
-    // Pointer helpers (support pointer events)
-    function getPointerCoords(evt) {
-      // For pointer events use clientX/clientY. For touch, pointer events already normalize.
-      return { x: evt.clientX ?? 0, y: evt.clientY ?? 0 };
-    }
+    // pointer coords
+    function getPointerCoords(e) { return { x: e.clientX ?? 0, y: e.clientY ?? 0 }; }
 
-    // Save move history (pre-move snapshot)
+    // Save history for undo (save pre-move state)
     function saveHistory(el) {
-      const entry = {
-        id: el.id,
+      const snapshot = {
+        id: el.id || el.dataset.layerId || null,
+        type: el.classList.contains('sticker-layer') ? 'sticker' : 'text',
         top: el.style.top || '50%',
         left: el.style.left || '50%',
         transform: el.style.transform || ''
       };
-      historyStack.push(entry);
+      historyStack.push(snapshot);
       if (historyStack.length > MAX_HISTORY) historyStack.shift();
       undoButton.disabled = false;
     }
-
     function undoLastMove() {
       if (!historyStack.length) return;
       const last = historyStack.pop();
-      const el = document.getElementById(last.id);
+      let el = null;
+      if (last.type === 'sticker') el = document.querySelector(`.sticker-layer[data-layer-id="${last.id}"]`);
+      else el = document.getElementById(last.id);
       if (el) {
         el.style.top = last.top;
         el.style.left = last.left;
@@ -378,12 +377,14 @@
       if (!historyStack.length) undoButton.disabled = true;
     }
 
-    // Reset everything to initial defaults
+    // Reset application
     function resetAll() {
       wishOverlay.style.top = '25%'; wishOverlay.style.left = '50%'; wishOverlay.style.transform = 'translate(-50%,-50%) rotate(0deg)';
       subOverlay.style.top = '80%'; subOverlay.style.left = '50%'; subOverlay.style.transform = 'translate(-50%,-50%) rotate(0deg)';
+      // remove stickers
+      stickerLayerContainer.innerHTML = '';
+      activeSticker = null; stickerControls.classList.add('hidden');
       aspectRatio.value = '1:1';
-      // reset inputs
       inputs.wishText.value = 'Happy Moments!';
       inputs.wishColor.value = '#ffffff';
       inputs.wishSize.value = 48;
@@ -406,192 +407,151 @@
       historyStack = [];
       undoButton.disabled = true;
       outputArea.classList.add('hidden');
-      // redraw
       resizeCanvas();
     }
 
-    // Apply a single overlay's text to canvas (respects rotation & stroke)
-    function applyCanvasTextToCtx(el, options) {
-      // options: {text, color, fontSize, fontClass, rotateDeg, strokeEnable, strokeColor, strokeWidth}
-      const cssW = canvas.width / dpr;
-      const cssH = canvas.height / dpr;
-      const left = percentOrDefault(el.style.left, 50);
-      const top = percentOrDefault(el.style.top, 50);
-      const x = (left / 100) * cssW;
-      const y = (top / 100) * cssH;
+    // Create a sticker DOM element and add to canvas
+    // src: image URL; initial x,y in percent
+    let stickerCounter = 0;
+    function addSticker(src, left='50%', top='50%', scale=1, rotate=0) {
+      const id = 'sticker_'+(++stickerCounter);
+      const el = document.createElement('div');
+      el.className = 'sticker-layer';
+      el.dataset.layerId = id;
+      el.style.left = (left)+'';
+      el.style.top = (top)+'';
+      el.style.transform = `translate(-50%, -50%) scale(${scale}) rotate(${rotate}deg)`;
+      el.setAttribute('tabindex','0');
+      // default size: 80px (CSS) width, but we keep natural image inside
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = 'sticker';
+      img.style.width = '96px';
+      img.style.height = 'auto';
+      el.appendChild(img);
+      // add to container
+      stickerLayerContainer.appendChild(el);
 
-      const fontSize = options.fontSize || parseFloat(window.getComputedStyle(el).fontSize) || 24;
+      // attach pointer events by delegation (global handlers will use class)
+      // set as active
+      selectSticker(el);
 
-      // map font class to family
-      let family = 'Inter';
-      if ((options.fontClass || '').includes('oswald')) family = 'Oswald';
-      else if ((options.fontClass || '').includes('caveat')) family = 'Caveat';
-      else if ((options.fontClass || '').includes('mono')) family = 'Roboto Mono';
+      return el;
+    }
 
-      // Build font in CSS px units — ctx.setTransform ensures crispness
-      ctx.font = `${fontSize}px ${family}`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-
-      // apply rotation by saving/restoring and using translate/rotate in CSS units
-      ctx.save();
-      // move to center (CSS coords)
-      ctx.translate(x, y);
-      ctx.rotate((options.rotateDeg || 0) * Math.PI / 180);
-
-      // stroke if requested
-      if (options.strokeEnable) {
-        ctx.lineWidth = Math.max(1, options.strokeWidth || 1);
-        ctx.strokeStyle = options.strokeColor || '#000';
-        ctx.strokeText(options.text, 0, 0);
+    // select/deselect sticker
+    function selectSticker(el) {
+      if (activeSticker) activeSticker.classList.remove('selected');
+      activeSticker = el;
+      if (!el) {
+        stickerControls.classList.add('hidden');
+        return;
       }
-
-      // fill
-      ctx.fillStyle = options.color || '#fff';
-      ctx.fillText(options.text, 0, 0);
-      ctx.restore();
+      el.classList.add('selected');
+      // parse current transform to extract scale/rotate
+      const m = el.style.transform.match(/scale\((-?[0-9.]+)\)\s*rotate\((-?[0-9.]+)deg\)/);
+      let scale = 1, rotate = 0;
+      if (m) { scale = parseFloat(m[1]); rotate = parseFloat(m[2]); }
+      stickerScale.value = scale;
+      stickerRotate.value = rotate;
+      stickerControls.classList.remove('hidden');
     }
 
-    // Generate final image with chosen export DPR
-    function generateFinalImage() {
-      if (!isImageLoaded) return;
+    // update transform of activeSticker when sliders change
+    stickerScale.addEventListener('input', () => {
+      if (!activeSticker) return;
+      const s = parseFloat(stickerScale.value);
+      const r = parseFloat(stickerRotate.value);
+      activeSticker.style.transform = `translate(-50%, -50%) scale(${s}) rotate(${r}deg)`;
+    });
+    stickerRotate.addEventListener('input', () => {
+      if (!activeSticker) return;
+      const s = parseFloat(stickerScale.value);
+      const r = parseFloat(stickerRotate.value);
+      activeSticker.style.transform = `translate(-50%, -50%) scale(${s}) rotate(${r}deg)`;
+    });
 
-      // get export DPR chosen by user
-      const exportScale = parseFloat(exportDpr.value) || 2;
+    // bring forward / send back
+    bringForwardBtn.addEventListener('click', () => {
+      if (!activeSticker) return;
+      // increase z-index
+      const z = parseInt(activeSticker.style.zIndex || 2);
+      activeSticker.style.zIndex = z + 1;
+    });
+    sendBackBtn.addEventListener('click', () => {
+      if (!activeSticker) return;
+      const z = parseInt(activeSticker.style.zIndex || 2);
+      activeSticker.style.zIndex = Math.max(0, z - 1);
+    });
 
-      // CSS sizes
-      const cssW = canvas.width / dpr;
-      const cssH = canvas.height / dpr;
+    // delete sticker
+    deleteStickerBtn.addEventListener('click', () => {
+      if (!activeSticker) return;
+      activeSticker.remove();
+      activeSticker = null;
+      stickerControls.classList.add('hidden');
+    });
 
-      // create an offscreen canvas for export (pixel buffer = css * exportScale)
-      const exportCanvas = document.createElement('canvas');
-      exportCanvas.width = Math.round(cssW * exportScale);
-      exportCanvas.height = Math.round(cssH * exportScale);
-      const ectx = exportCanvas.getContext('2d');
-
-      // scale so drawing in CSS px maps to exported pixels
-      ectx.setTransform(exportScale, 0, 0, exportScale, 0, 0);
-
-      // draw background image (center-crop) in CSS coords
-      const imgW = uploadedImage.width, imgH = uploadedImage.height;
-      const scale = Math.max(cssW / imgW, cssH / imgH);
-      const tW = imgW * scale, tH = imgH * scale;
-      const x = (cssW - tW) / 2, y = (cssH - tH) / 2;
-      ectx.clearRect(0,0,cssW, cssH);
-      ectx.drawImage(uploadedImage, x, y, tW, tH);
-
-      // apply texts (wish + sub)
-      applyCanvasTextToExport(ectx, wishOverlay, {
-        text: inputs.wishText.value,
-        color: inputs.wishColor.value,
-        fontSize: parseFloat(inputs.wishSize.value),
-        fontClass: inputs.wishFont.value,
-        rotateDeg: parseFloat(inputs.wishRotate.value),
-        strokeEnable: inputs.wishStrokeEnable.checked,
-        strokeColor: inputs.wishStrokeColor.value,
-        strokeWidth: parseFloat(inputs.wishStrokeWidth.value)
+    // Sticker palette click
+    stickerPalette.querySelectorAll('.sticker-thumb').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const src = btn.dataset.src;
+        const st = addSticker(src, '50%', '50%', 1, 0);
+        // small offset so subsequent added stickers don't stack exactly
+        const existing = stickerLayerContainer.children.length;
+        const left = 50 + (existing % 5) * 6;
+        const top = 50 + Math.floor(existing/5) * 6;
+        st.style.left = left + '%';
+        st.style.top = top + '%';
+        selectSticker(st);
       });
+    });
 
-      applyCanvasTextToExport(ectx, subOverlay, {
-        text: inputs.subText.value,
-        color: inputs.subColor.value,
-        fontSize: parseFloat(inputs.subSize.value),
-        fontClass: inputs.subFont.value,
-        rotateDeg: parseFloat(inputs.subRotate.value),
-        strokeEnable: inputs.subStrokeEnable.checked,
-        strokeColor: inputs.subStrokeColor.value,
-        strokeWidth: parseFloat(inputs.subStrokeWidth.value)
-      });
-
-      // build dataURL and update UI
-      const dataUrl = exportCanvas.toDataURL('image/png');
-      finalImagePreview.src = dataUrl;
-      finalImagePreview.style.display = 'block';
-      downloadLink.href = dataUrl;
-      outputArea.classList.remove('hidden');
-
-      // scroll to output
-      finalImagePreview.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    // Similar to applyCanvasTextToCtx but uses provided context (for export) and draws in CSS units (transform applied)
-    function applyCanvasTextToExport(ectx, el, options) {
-      // same logic as applyCanvasTextToCtx but using ectx
-      const cssW = canvas.width / dpr;
-      const cssH = canvas.height / dpr;
-      const left = percentOrDefault(el.style.left, 50);
-      const top = percentOrDefault(el.style.top, 50);
-      const x = (left / 100) * cssW;
-      const y = (top / 100) * cssH;
-
-      const fontSize = options.fontSize || parseFloat(window.getComputedStyle(el).fontSize) || 24;
-
-      let family = 'Inter';
-      if ((options.fontClass || '').includes('oswald')) family = 'Oswald';
-      else if ((options.fontClass || '').includes('caveat')) family = 'Caveat';
-      else if ((options.fontClass || '').includes('mono')) family = 'Roboto Mono';
-
-      ectx.save();
-      ectx.font = `${fontSize}px ${family}`;
-      ectx.textAlign = 'center';
-      ectx.textBaseline = 'middle';
-      ectx.translate(x, y);
-      ectx.rotate((options.rotateDeg || 0) * Math.PI / 180);
-
-      if (options.strokeEnable) {
-        ectx.lineWidth = Math.max(1, options.strokeWidth || 1);
-        ectx.strokeStyle = options.strokeColor || '#000';
-        ectx.strokeText(options.text, 0, 0);
-      }
-      ectx.fillStyle = options.color || '#fff';
-      ectx.fillText(options.text, 0, 0);
-      ectx.restore();
-    }
-
-    /* ------------------ POINTER DRAG HANDLERS ------------------ */
+    // Pointer drag handling (text and sticker) using pointer events and event delegation
     function pointerDownHandler(e) {
-      // Only start when pointer is on an overlay
-      if (!e.target.classList.contains('draggable-text')) return;
-      e.preventDefault();
-      activeOverlay = e.target;
-      activeOverlay.setPointerCapture?.(e.pointerId);
+      // only handle left button or primary pointer
+      if (e.button !== undefined && e.button !== 0) return;
+      let target = e.target;
+      // if clicked inside sticker image, get parent .sticker-layer
+      if (target.closest && target.closest('.sticker-layer')) target = target.closest('.sticker-layer');
+      if (!target) return;
+      if (target.classList.contains('draggable-text') || target.classList.contains('sticker-layer')) {
+        e.preventDefault();
+        activeOverlay = target;
+        // save pre-move state
+        saveHistory(activeOverlay);
+        // select sticker if clicked
+        if (activeOverlay.classList.contains('sticker-layer')) selectSticker(activeOverlay);
+        else { /* text overlays: deselect sticker UI */ activeSticker = null; stickerControls.classList.add('hidden'); }
 
-      // Save pre-move state
-      saveHistory(activeOverlay);
-
-      // compute offset relative to overlay center
-      const parentRect = previewContainer.getBoundingClientRect();
-      const leftPercent = percentOrDefault(activeOverlay.style.left, 50);
-      const topPercent = percentOrDefault(activeOverlay.style.top, 50);
-      const centerX = parentRect.left + (parentRect.width * leftPercent / 100);
-      const centerY = parentRect.top + (parentRect.height * topPercent / 100);
-
-      const { x, y } = getPointerCoords(e);
-      offset.x = x - centerX;
-      offset.y = y - centerY;
-
-      // slightly raise overlay
-      activeOverlay.style.zIndex = 20;
+        const parentRect = previewContainer.getBoundingClientRect();
+        // compute current center based on percent
+        const leftPercent = percentOrDefault(activeOverlay.style.left, 50);
+        const topPercent = percentOrDefault(activeOverlay.style.top, 50);
+        const centerX = parentRect.left + parentRect.width * leftPercent/100;
+        const centerY = parentRect.top + parentRect.height * topPercent/100;
+        const { x, y } = getPointerCoords(e);
+        offset.x = x - centerX;
+        offset.y = y - centerY;
+        activeOverlay.setPointerCapture?.(e.pointerId);
+        activeOverlay.style.zIndex = 50;
+      } else {
+        // clicked outside overlays -> deselect sticker controls
+        if (activeSticker) { activeSticker.classList.remove('selected'); activeSticker = null; stickerControls.classList.add('hidden'); }
+      }
     }
 
     function pointerMoveHandler(e) {
       if (!activeOverlay) return;
       e.preventDefault();
-
-      // pointer coords
-      const { x, y } = getPointerCoords(e);
       const parentRect = previewContainer.getBoundingClientRect();
-
-      // new center in viewport coords
+      const { x, y } = getPointerCoords(e);
       const newCenterX = x - offset.x;
       const newCenterY = y - offset.y;
-
-      // convert to percent relative to container
       let leftPct = ((newCenterX - parentRect.left) / parentRect.width) * 100;
       let topPct = ((newCenterY - parentRect.top) / parentRect.height) * 100;
-      leftPct = Math.max(0, Math.min(100, leftPct));
-      topPct = Math.max(0, Math.min(100, topPct));
-
+      leftPct = clamp(leftPct, 0, 100);
+      topPct = clamp(topPct, 0, 100);
       activeOverlay.style.left = leftPct.toFixed(2) + '%';
       activeOverlay.style.top = topPct.toFixed(2) + '%';
     }
@@ -599,50 +559,55 @@
     function pointerUpHandler(e) {
       if (!activeOverlay) return;
       activeOverlay.releasePointerCapture?.(e.pointerId);
-      activeOverlay.style.zIndex = 1;
+      activeOverlay.style.zIndex = ''; // remove explicit z-index; rely on stacking or sticker z
       activeOverlay = null;
     }
 
-    // Normalized pointer coords (works with PointerEvent / MouseEvent)
-    function getPointerCoords(evt) {
-      return { x: evt.clientX ?? 0, y: evt.clientY ?? 0 };
-    }
-
-    /* ------------------ KEYBOARD NUDGE ------------------ */
+    // keyboard nudge
     function overlayKeyHandler(e) {
-      // nudge overlay with arrow keys when focused
       const el = e.currentTarget;
-      const step = e.shiftKey ? 10 : 1; // shift = big steps
+      const step = e.shiftKey ? 10 : 1;
+      let left = percentOrDefault(el.style.left,50);
+      let top = percentOrDefault(el.style.top,50);
       let moved = false;
-      let left = percentOrDefault(el.style.left, 50);
-      let top = percentOrDefault(el.style.top, 50);
-
-      if (e.key === 'ArrowLeft') { left -= (step / (previewContainer.clientWidth/100)); moved = true; }
-      if (e.key === 'ArrowRight') { left += (step / (previewContainer.clientWidth/100)); moved = true; }
-      if (e.key === 'ArrowUp') { top -= (step / (previewContainer.clientHeight/100)); moved = true; }
-      if (e.key === 'ArrowDown') { top += (step / (previewContainer.clientHeight/100)); moved = true; }
-
+      if (e.key === 'ArrowLeft') { left -= (step / (previewContainer.clientWidth/100)); moved=true; }
+      if (e.key === 'ArrowRight') { left += (step / (previewContainer.clientWidth/100)); moved=true; }
+      if (e.key === 'ArrowUp') { top -= (step / (previewContainer.clientHeight/100)); moved=true; }
+      if (e.key === 'ArrowDown') { top += (step / (previewContainer.clientHeight/100)); moved=true; }
       if (moved) {
         e.preventDefault();
-        // save pre-move to history
         saveHistory(el);
-        el.style.left = Math.max(0, Math.min(100, left)).toFixed(2) + '%';
-        el.style.top = Math.max(0, Math.min(100, top)).toFixed(2) + '%';
+        el.style.left = clamp(left,0,100).toFixed(2) + '%';
+        el.style.top = clamp(top,0,100).toFixed(2) + '%';
         undoButton.disabled = false;
       }
     }
 
-    /* ------------------ IMAGE UPLOAD ------------------ */
+    // Attach global pointer handlers
+    document.addEventListener('pointerdown', pointerDownHandler);
+    document.addEventListener('pointermove', pointerMoveHandler, { passive:false });
+    document.addEventListener('pointerup', pointerUpHandler);
+
+    // Attach keyboard handlers for overlays
+    wishOverlay.addEventListener('keydown', overlayKeyHandler);
+    subOverlay.addEventListener('keydown', overlayKeyHandler);
+
+    // Attach keyboard handlers to sticker layer container (delegation when element focused)
+    stickerLayerContainer.addEventListener('keydown', (e) => {
+      if (e.target && e.target.classList.contains('sticker-layer')) overlayKeyHandler.call(e.target, e);
+    });
+
+    // update text overlay values when inputs change
+    Object.values(inputs).forEach(inp => inp.addEventListener('input', () => updateTextOverlays()));
+
+    // image upload
     imageUpload.addEventListener('change', (ev) => {
       const file = ev.target.files && ev.target.files[0];
       if (!file) return;
-      // warn if big
       if (file.size > 8 * 1024 * 1024) {
-        fileWarn.textContent = 'Large image detected (>8MB). Upload may be slow; consider using a smaller image.';
+        fileWarn.textContent = 'Large image detected (>8MB). Upload may be slow; consider a smaller image.';
         fileWarn.classList.remove('hidden');
-      } else {
-        fileWarn.classList.add('hidden');
-      }
+      } else fileWarn.classList.add('hidden');
 
       const reader = new FileReader();
       reader.onload = function(evt) {
@@ -654,54 +619,28 @@
           resizeCanvas();
           drawImageOnCanvas();
         };
-        uploadedImage.onerror = function() {
-          console.error('Image load error');
-        };
+        uploadedImage.onerror = function() { console.error('image load error'); };
         uploadedImage.src = evt.target.result;
       };
       reader.readAsDataURL(file);
     });
 
-    /* ------------------ EVENTS & LISTENERS ------------------ */
-
-    // pointer events (capture at container level)
-    document.addEventListener('pointerdown', pointerDownHandler);
-    document.addEventListener('pointermove', pointerMoveHandler, { passive: false });
-    document.addEventListener('pointerup', pointerUpHandler);
-    // ensure overlays are focusable and keyboard-nudgeable
-    [wishOverlay, subOverlay].forEach(el => {
-      el.addEventListener('keydown', overlayKeyHandler);
-    });
-
-    // update overlays when inputs change
-    Object.values(inputs).forEach(inp => {
-      inp.addEventListener('input', () => {
-        updateTextOverlays();
-      });
-    });
-
-    // aspect ratio and resize handling
-    aspectRatio.addEventListener('change', () => {
-      resizeCanvas();
-      // keep overlay positions the same (percent-based)
-    });
-    window.addEventListener('resize', debounce(() => resizeCanvas(), 120));
-
-    // Undo / Reset
-    undoButton.addEventListener('click', undoLastMove);
-    resetButton.addEventListener('click', resetAll);
-
-    // Generate / export
-    processButton.addEventListener('click', () => {
-      // ensure image present
-      if (!isImageLoaded) return;
-      // hide overlays briefly (not necessary for export since we render on export canvas separately)
-      generateFinalImage();
-    });
-
-    // Save / Load design to localStorage
+    // save/load designs with stickers and overlays
     saveButton.addEventListener('click', () => {
-      // Build a small object capturing state
+      const stickerNodes = Array.from(stickerLayerContainer.children).map(el => {
+        const img = el.querySelector('img');
+        // derive CSS percent positions and transform
+        const left = el.style.left || '50%';
+        const top = el.style.top || '50%';
+        // extract scale & rotate from transform using regex
+        const tr = el.style.transform || '';
+        const m = tr.match(/scale\((-?[0-9.]+)\)\s*rotate\((-?[0-9.]+)deg\)/);
+        const scale = m ? parseFloat(m[1]) : 1;
+        const rotate = m ? parseFloat(m[2]) : 0;
+        const z = el.style.zIndex || 2;
+        return { src: img.src, left, top, scale, rotate, z };
+      });
+
       const state = {
         imageDataUrl: uploadedImage && uploadedImage.src ? uploadedImage.src : null,
         aspectRatio: aspectRatio.value,
@@ -730,10 +669,11 @@
           top: subOverlay.style.top || '80%',
           left: subOverlay.style.left || '50%',
           transform: subOverlay.style.transform || ''
-        }
+        },
+        stickers: stickerNodes
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      alert('Design saved to your browser (localStorage).');
+      alert('Design saved locally in your browser.');
     });
 
     loadButton.addEventListener('click', () => {
@@ -778,6 +718,17 @@
           subOverlay.style.left = st.sub.left || subOverlay.style.left;
           subOverlay.style.transform = st.sub.transform || subOverlay.style.transform;
         }
+        // recreate stickers
+        stickerLayerContainer.innerHTML = '';
+        if (st.stickers && Array.isArray(st.stickers)) {
+          st.stickers.forEach(s => {
+            const el = addSticker(s.src, s.left, s.top, s.scale, s.rotate);
+            el.style.zIndex = s.z || 2;
+            // set image natural width if available
+            const img = el.querySelector('img');
+            img.onload = () => { /* optional */ };
+          });
+        }
         updateTextOverlays();
         resizeCanvas();
         alert('Design loaded.');
@@ -792,85 +743,303 @@
       alert('Saved design cleared.');
     });
 
-    // Help modal
+    // help
     helpBtn.addEventListener('click', () => {
-      const msg = `How to use Wish Weaver\n\n1) Upload an image (image is never uploaded to server).\n2) Choose aspect ratio and customize text, font, color, stroke, and rotation.\n3) Drag text boxes on the preview. Use arrow keys to nudge (Shift for larger steps).\n4) Click Generate PNG to export at chosen DPI. Save to localStorage to continue later.`;
-      alert(msg);
+      alert('Upload an image, add text and stickers, drag to position, use rotate/scale sliders for stickers, and click Generate PNG to export. All processing happens locally in your browser.');
     });
 
-    // Utility: debounce
-    function debounce(fn, ms=100) {
-      let t;
-      return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
-    }
-
-    // small helper to get pointer coords (for both mouse and touch - using pointer events)
-    function getPointerCoords(evt) {
-      return { x: evt.clientX ?? 0, y: evt.clientY ?? 0 };
-    }
-
-    // initial wiring: overlay interactions via pointer events on document (we used pointer handlers above)
-    // ensure overlays are clickable for focus
+    // pointer handlers are already added above in code earlier versions; reuse them
+    // but ensure overlays and stickers are focusable for keyboard actions
     [wishOverlay, subOverlay].forEach(el => {
-      // default positions if not set
       if (!el.style.left) el.style.left = el === wishOverlay ? '50%' : '50%';
       if (!el.style.top) el.style.top = el === wishOverlay ? '25%' : '80%';
-
-      // allow keyboard focus
-      el.setAttribute('tabindex', '0');
-
-      // bring up rotation wheel for visual feedback when rotate input changes (we update transform in updateTextOverlays)
-      el.addEventListener('focus', () => { el.style.outline = 'none'; });
+      el.setAttribute('tabindex','0');
     });
 
-    // when pointerdown occurs on overlay, track pointer capture & moves (listeners already attached globally)
-    document.addEventListener('pointerdown', (ev) => {
-      if (!ev.target.classList.contains('draggable-text')) return;
-      // start handled by pointerDownHandler
-    });
-
-    // small adjustments to enable initial update
-    updateTextOverlays();
-    resizeCanvas();
-
-    // enable process button when image loaded
-    const enableProcessWhenReady = () => {
-      processButton.disabled = !isImageLoaded;
-    };
-    // watch imageLoaded for enabling (image load sets true)
-    const observer = new MutationObserver(() => enableProcessWhenReady());
-    observer.observe(processButton, { attributes: true });
-
-    // Wire top-level pointer handlers (separate from earlier functions so they are installed after DOM is ready)
-    document.addEventListener('pointerdown', (e) => {
-      // only start drag when on draggable
-      if (!e.target.classList.contains('draggable-text')) return;
-      // delegate to pointerDownHandler
-      pointerDownHandler(e);
-    });
-
-    document.addEventListener('pointermove', (e) => {
-      pointerMoveHandler(e);
-    }, { passive: false });
-
-    document.addEventListener('pointerup', (e) => {
-      pointerUpHandler(e);
-    });
-
-    // Attach keyboard nudge listeners (already added above per overlay)
+    // keyboard nudge handlers
+    function overlayKeyHandler(e) {
+      const el = e.currentTarget;
+      const step = e.shiftKey ? 10 : 1;
+      let left = percentOrDefault(el.style.left,50);
+      let top = percentOrDefault(el.style.top,50);
+      let moved = false;
+      if (e.key === 'ArrowLeft') { left -= (step / (previewContainer.clientWidth/100)); moved=true; }
+      if (e.key === 'ArrowRight') { left += (step / (previewContainer.clientWidth/100)); moved=true; }
+      if (e.key === 'ArrowUp') { top -= (step / (previewContainer.clientHeight/100)); moved=true; }
+      if (e.key === 'ArrowDown') { top += (step / (previewContainer.clientHeight/100)); moved=true; }
+      if (moved) {
+        e.preventDefault();
+        saveHistory(el);
+        el.style.left = clamp(left,0,100).toFixed(2)+'%';
+        el.style.top = clamp(top,0,100).toFixed(2)+'%';
+        undoButton.disabled = false;
+      }
+    }
     wishOverlay.addEventListener('keydown', overlayKeyHandler);
     subOverlay.addEventListener('keydown', overlayKeyHandler);
 
-    // small utility: ensure buttons disabled/enabled reflect state
-    function updateButtonsState() {
-      undoButton.disabled = historyStack.length === 0;
-      processButton.disabled = !isImageLoaded;
+    // sticker selection via click: delegate at container
+    stickerLayerContainer.addEventListener('pointerdown', (ev) => {
+      // if clicked inside a sticker, select it (handled in pointerDownHandler too)
+      const st = ev.target.closest && ev.target.closest('.sticker-layer');
+      if (st) {
+        selectSticker(st);
+      } else {
+        if (activeSticker) { activeSticker.classList.remove('selected'); activeSticker=null; stickerControls.classList.add('hidden'); }
+      }
+    });
+
+    // drawing text to export canvas: supports rotation and stroke
+    function drawTextOnCtx(ectx, el, options) {
+      const cssW = canvas.width / dpr;
+      const cssH = canvas.height / dpr;
+      const left = percentOrDefault(el.style.left,50);
+      const top = percentOrDefault(el.style.top,50);
+      const x = (left/100) * cssW;
+      const y = (top/100) * cssH;
+      const fontSize = options.fontSize || parseFloat(window.getComputedStyle(el).fontSize) || 24;
+      let family = 'Inter';
+      if ((options.fontClass||'').includes('oswald')) family='Oswald';
+      else if ((options.fontClass||'').includes('caveat')) family='Caveat';
+      else if ((options.fontClass||'').includes('mono')) family='Roboto Mono';
+      ectx.save();
+      ectx.translate(x,y);
+      ectx.rotate((options.rotateDeg||0) * Math.PI/180);
+      ectx.font = `${fontSize}px ${family}`;
+      ectx.textAlign='center'; ectx.textBaseline='middle';
+      if (options.strokeEnable) {
+        ectx.lineWidth = Math.max(1, options.strokeWidth||1);
+        ectx.strokeStyle = options.strokeColor||'#000';
+        ectx.strokeText(options.text,0,0);
+      }
+      ectx.fillStyle = options.color||'#fff';
+      ectx.fillText(options.text,0,0);
+      ectx.restore();
     }
-    setInterval(updateButtonsState, 600);
 
-    // initial reset defaults
-    resetAll();
+    // draw stickers to export canvas
+    function drawStickerOnCtx(ectx, el) {
+      // el contains img child; use its natural size
+      const cssW = canvas.width / dpr;
+      const cssH = canvas.height / dpr;
+      const left = percentOrDefault(el.style.left,50);
+      const top = percentOrDefault(el.style.top,50);
+      const x = (left/100) * cssW;
+      const y = (top/100) * cssH;
 
+      // extract scale & rotate from transform
+      const tr = el.style.transform || '';
+      const m = tr.match(/scale\((-?[0-9.]+)\)\s*rotate\((-?[0-9.]+)deg\)/);
+      const scale = m ? parseFloat(m[1]) : 1;
+      const rotate = m ? parseFloat(m[2]) : 0;
+
+      const img = el.querySelector('img');
+      if (!img || !img.naturalWidth) {
+        // image may not be loaded yet; skip
+        return;
+      }
+      // we used CSS width to size sticker; compute its CSS width from img.style.width (e.g. '96px')
+      let cssImgWidth = parseFloat(img.style.width) || img.naturalWidth * 0.15; // fallback
+      const cssImgHeight = cssImgWidth * (img.naturalHeight / img.naturalWidth);
+      // draw at center: we need top-left in CSS coords
+      const leftPx = x - (cssImgWidth/2);
+      const topPx  = y - (cssImgHeight/2);
+
+      ectx.save();
+      ectx.translate(x, y);
+      ectx.rotate(rotate * Math.PI/180);
+      ectx.scale(scale, scale);
+      // when scaled, we must multiply by 1/scale to get correct drawing box after transform - simpler: draw centered at 0,0 with width cssImgWidth
+      // drawImage uses top-left, so draw at -cssImgWidth/2, -cssImgHeight/2
+      ectx.drawImage(img, -cssImgWidth/2, -cssImgHeight/2, cssImgWidth, cssImgHeight);
+      ectx.restore();
+    }
+
+    // generate final exported PNG (draw image, texts, stickers)
+    function generateFinalImage() {
+      if (!isImageLoaded) return;
+      const exportScale = parseFloat(exportDpr.value) || 2;
+      const cssW = canvas.width / dpr;
+      const cssH = canvas.height / dpr;
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = Math.round(cssW * exportScale);
+      exportCanvas.height = Math.round(cssH * exportScale);
+      const ectx = exportCanvas.getContext('2d', { alpha: false });
+      // scale so CSS px mapped to export pixels
+      ectx.setTransform(exportScale, 0, 0, exportScale, 0, 0);
+
+      // draw background image center-crop
+      const iw = uploadedImage.width, ih = uploadedImage.height;
+      const scale = Math.max(cssW / iw, cssH / ih);
+      const tW = iw * scale, tH = ih * scale;
+      const x = (cssW - tW) / 2, y = (cssH - tH) / 2;
+      ectx.clearRect(0,0,cssW,cssH);
+      ectx.drawImage(uploadedImage, x, y, tW, tH);
+
+      // draw stickers first or after texts depending on z-order; we'll draw in DOM stacking order: stickerLayerContainer children (lowest first)
+      // collect sticker elements
+      const stickerEls = Array.from(stickerLayerContainer.children);
+      // sort by z (numeric)
+      stickerEls.sort((a,b)=> (parseInt(a.style.zIndex||2) - parseInt(b.style.zIndex||2)));
+
+      // draw stickers
+      stickerEls.forEach(el => drawStickerOnCtx(ectx, el));
+
+      // draw texts: wish then sub (we'll draw both)
+      drawTextOnCtx(ectx, wishOverlay, {
+        text: inputs.wishText.value,
+        color: inputs.wishColor.value,
+        fontSize: parseFloat(inputs.wishSize.value),
+        fontClass: inputs.wishFont.value,
+        rotateDeg: parseFloat(inputs.wishRotate.value),
+        strokeEnable: inputs.wishStrokeEnable.checked,
+        strokeColor: inputs.wishStrokeColor.value,
+        strokeWidth: parseFloat(inputs.wishStrokeWidth.value)
+      });
+      drawTextOnCtx(ectx, subOverlay, {
+        text: inputs.subText.value,
+        color: inputs.subColor.value,
+        fontSize: parseFloat(inputs.subSize.value),
+        fontClass: inputs.subFont.value,
+        rotateDeg: parseFloat(inputs.subRotate.value),
+        strokeEnable: inputs.subStrokeEnable.checked,
+        strokeColor: inputs.subStrokeColor.value,
+        strokeWidth: parseFloat(inputs.subStrokeWidth.value)
+      });
+
+      const dataUrl = exportCanvas.toDataURL('image/png');
+      finalImagePreview.src = dataUrl;
+      finalImagePreview.style.display = 'block';
+      downloadLink.href = dataUrl;
+      outputArea.classList.remove('hidden');
+      finalImagePreview.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // apply text overlays and redraw (for preview)
+    function applyTextAndPreview() {
+      // draw image then optionally draw (preview) text on canvas (for preview only we use CSS scaled ctx)
+      drawImageOnCanvas();
+      // draw texts onto canvas in preview (we'll use same functions as export but draw on scaled ctx)
+      // Wish text
+      drawTextOnCanvasPreview(wishOverlay, {
+        text: inputs.wishText.value,
+        color: inputs.wishColor.value,
+        fontSize: parseFloat(inputs.wishSize.value),
+        fontClass: inputs.wishFont.value,
+        rotateDeg: parseFloat(inputs.wishRotate.value),
+        strokeEnable: inputs.wishStrokeEnable.checked,
+        strokeColor: inputs.wishStrokeColor.value,
+        strokeWidth: parseFloat(inputs.wishStrokeWidth.value)
+      });
+      // Sub text
+      drawTextOnCanvasPreview(subOverlay, {
+        text: inputs.subText.value,
+        color: inputs.subColor.value,
+        fontSize: parseFloat(inputs.subSize.value),
+        fontClass: inputs.subFont.value,
+        rotateDeg: parseFloat(inputs.subRotate.value),
+        strokeEnable: inputs.subStrokeEnable.checked,
+        strokeColor: inputs.subStrokeColor.value,
+        strokeWidth: parseFloat(inputs.subStrokeWidth.value)
+      });
+      // Note: stickers are DOM elements on top of canvas for visual editing; canvas preview draws only image+text.
+    }
+
+    // draw text on preview canvas (ctx is already scaled by dpr via setTransform)
+    function drawTextOnCanvasPreview(el, options) {
+      const cssW = canvas.width / dpr;
+      const cssH = canvas.height / dpr;
+      const left = percentOrDefault(el.style.left,50);
+      const top = percentOrDefault(el.style.top,50);
+      const x = (left/100) * cssW;
+      const y = (top/100) * cssH;
+      const fontSize = options.fontSize || parseFloat(window.getComputedStyle(el).fontSize) || 24;
+      let family = 'Inter';
+      if ((options.fontClass||'').includes('oswald')) family='Oswald';
+      else if ((options.fontClass||'').includes('caveat')) family='Caveat';
+      else if ((options.fontClass||'').includes('mono')) family='Roboto Mono';
+
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.rotate((options.rotateDeg||0) * Math.PI/180);
+      ctx.font = `${fontSize}px ${family}`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      if (options.strokeEnable) {
+        ctx.lineWidth = Math.max(1, options.strokeWidth||1);
+        ctx.strokeStyle = options.strokeColor||'#000';
+        ctx.strokeText(options.text,0,0);
+      }
+      ctx.fillStyle = options.color||'#fff';
+      ctx.fillText(options.text,0,0);
+      ctx.restore();
+    }
+
+    // Events: aspect change, resize
+    aspectRatio.addEventListener('change', () => {
+      resizeCanvas();
+      // stickers/text positions are percentage-based so no change needed
+    });
+    window.addEventListener('resize', debounce(()=> { resizeCanvas(); applyTextAndPreview(); }, 120));
+
+    // draw preview when text inputs change
+    Object.values(inputs).forEach(inp => inp.addEventListener('input', () => {
+      updateTextOverlays();
+      applyTextAndPreview();
+    }));
+
+    // image upload handled earlier; enable generate button when image ready
+    const enableProcessWhenReady = () => {
+      processButton.disabled = !isImageLoaded;
+    };
+    setInterval(enableProcessWhenReady, 400);
+
+    // attach pointer handlers for sticker selection and dragging (global handlers)
+    document.addEventListener('pointerdown', pointerDownHandler);
+    document.addEventListener('pointermove', pointerMoveHandler, { passive:false });
+    document.addEventListener('pointerup', pointerUpHandler);
+
+    // small helper to parse pointer coords (works with pointer events)
+    function getPointerCoords(e) { return { x: e.clientX ?? 0, y: e.clientY ?? 0 }; }
+
+    // ensure sticker elements are focusable after created (we add in addSticker)
+    // but also allow clicking the images themselves
+    stickerLayerContainer.addEventListener('click', (ev) => {
+      const st = ev.target.closest && ev.target.closest('.sticker-layer');
+      if (st) selectSticker(st);
+    });
+
+    // delete sticker quick key (Delete)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Delete' && activeSticker) {
+        activeSticker.remove();
+        activeSticker = null; stickerControls.classList.add('hidden');
+      }
+    });
+
+    // generate button
+    processButton.addEventListener('click', () => { generateFinalImage(); });
+
+    // reset & undo
+    resetButton.addEventListener('click', resetAll);
+    undoButton.addEventListener('click', undoLastMove);
+
+    // initial setup
+    updateTextOverlays();
+    resizeCanvas();
+
+    // ensure sticker controls hide when nothing selected
+    stickerControls.classList.add('hidden');
+
+    // small accessibility: footer link click area already exists; no extra code needed.
+
+    // Expose pointerDownHandler etc inside current scope for earlier delegated listeners to work
+    function pointerDownHandler(e){ /* implemented earlier above to ensure consistent closure scope */ }
+    // The real pointerDownHandler is defined above before attaching listeners; no-op fallback here.
+
+    // Note: To keep the code compact and avoid duplicate function definitions, pointer handlers are the functions defined above (pointerDownHandler, pointerMoveHandler, pointerUpHandler).
+    // Because we attached them previously, no further action required.
+
+    // END of script.
   </script>
 </body>
 </html>
