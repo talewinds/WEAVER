@@ -875,7 +875,6 @@
       alert('Failed to generate image. Open the console for details.');
     }
   }
-
 function drawTextOnExportCtx(ectx, el, options) {
   const cssW = canvas.width / dpr;
   const cssH = canvas.height / dpr;
@@ -883,36 +882,33 @@ function drawTextOnExportCtx(ectx, el, options) {
   const top = percentOrDefault(el.style.top,50);
   const x = (left/100) * cssW;
   const y = (top/100) * cssH;
+
+  // Prefer the overlay's actual text (preserves any manual newlines), fallback to options.text
+  const rawText = String((el && el.textContent) ? el.textContent : (options.text || ''));
+
   const fontSize = options.fontSize || parseFloat(window.getComputedStyle(el).fontSize) || 24;
   let family = 'Inter';
   if ((options.fontClass||'').includes('oswald')) family='Oswald';
   else if ((options.fontClass||'').includes('caveat')) family='Caveat';
   else if ((options.fontClass||'').includes('mono')) family='Roboto Mono';
 
-  // Helper: wrap text into lines respecting explicit newlines and maxWidth
-  function wrapText(ctx, text, maxWidth) {
-    const paragraphs = String(text).split('\n');
+  // helper to wrap a single paragraph into lines
+  function wrapParagraph(ctx, text, maxWidth) {
+    const words = text.split(/\s+/).filter(Boolean);
     const lines = [];
-    for (let p of paragraphs) {
-      p = p.trim();
-      if (p === '') { lines.push(''); continue; }
-      const words = p.split(/\s+/);
-      let current = words[0] || '';
-      for (let i = 1; i < words.length; i++) {
-        const w = words[i];
-        const test = current + ' ' + w;
-        if (ctx.measureText(test).width <= maxWidth) {
-          current = test;
-        } else {
-          lines.push(current);
-          current = w;
-        }
-      }
-      if (current !== '') lines.push(current);
+    if (words.length === 0) return [''];
+    let current = words[0];
+    for (let i = 1; i < words.length; i++) {
+      const w = words[i];
+      const test = current + ' ' + w;
+      if (ctx.measureText(test).width <= maxWidth) current = test;
+      else { lines.push(current); current = w; }
     }
+    if (current) lines.push(current);
     return lines;
   }
 
+  // break text into paragraphs by explicit newlines, then wrap each paragraph
   ectx.save();
   ectx.translate(x,y);
   ectx.rotate((options.rotateDeg||0) * Math.PI/180);
@@ -920,22 +916,25 @@ function drawTextOnExportCtx(ectx, el, options) {
   ectx.textAlign = 'center';
   ectx.textBaseline = 'middle';
 
-  // compute wrapping width: allow some margin so text doesn't touch edges
-  const margin = Math.max(16, cssW * 0.04); // at least 16px or ~4% of width
+  // compute wrapping width (leave margins)
+  const margin = Math.max(16, cssW * 0.04);
   const maxTextWidth = Math.max(40, cssW - (margin * 2));
 
-  // build lines (respect explicit newlines)
-  const rawText = String(options.text || '');
-  const lines = wrapText(ectx, rawText, maxTextWidth);
+  const paragraphs = rawText.split(/\r?\n/);
+  const lines = [];
+  for (let p of paragraphs) {
+    p = p.replace(/^\s+|\s+$/g, ''); // trim
+    if (p === '') { lines.push(''); continue; }
+    const wrapped = wrapParagraph(ectx, p, maxTextWidth);
+    wrapped.forEach(l => lines.push(l));
+  }
 
-  // line height (a bit larger than fontSize for readability)
-  const lineHeight = fontSize * 1.15;
-
-  // Vertical positioning: center the block at (0,0) (which is translate x,y)
+  // line height and vertical alignment (center the block)
+  const lineHeight = Math.max(fontSize * 1.1, 1.1 * fontSize);
   const totalHeight = lines.length * lineHeight;
   let startY = - (totalHeight / 2) + (lineHeight / 2);
 
-  // scale stroke for export: use conservative multiplier to avoid heavy stroke
+  // scale stroke for export to avoid overly thick stroke
   const baseStroke = Math.max(0, Number(options.strokeWidth) || 0);
   const strokeExportPx = Math.max(0, baseStroke * 0.6);
 
