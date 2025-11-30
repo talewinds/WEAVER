@@ -29,6 +29,8 @@
       text-shadow: 2px 2px 4px rgba(0,0,0,0.45);
     }
     .draggable-text:active { cursor: grabbing; }
+
+    /* sticker layer (now holds emoji text) */
     .sticker-layer {
       position: absolute;
       touch-action: none;
@@ -37,8 +39,19 @@
       user-select: none;
       -webkit-user-select: none;
       cursor: grab;
+      display:flex;
+      align-items:center;
+      justify-content:center;
     }
-    .sticker-layer img { display:block; max-width:100%; height:auto; pointer-events: none; }
+    .sticker-layer .emoji {
+      pointer-events: none;
+      display:inline-block;
+      line-height:1;
+      user-select:none;
+      -webkit-user-select:none;
+      transform-origin:center center;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.45);
+    }
 
     #previewContainer { touch-action: none; }
 
@@ -49,7 +62,7 @@
     ::-webkit-scrollbar-track { background: #f0f4f8; }
 
     /* sticker thumbnail style */
-    .sticker-thumb img { display:block; width:100%; height:100%; object-fit:contain; }
+    .sticker-thumb img, .sticker-thumb .emoji { display:block; width:100%; height:100%; object-fit:contain; text-align:center; }
 
     /* Ad placeholders */
     .adsense-placeholder {
@@ -111,7 +124,7 @@
       backdrop-filter: blur(2px);
       -webkit-backdrop-filter: blur(2px);
       pointer-events: auto;
-      display: none; /* hidden until output generated */
+      display: none;
     }
     #outputWatermark:hover { background: rgba(255,255,255,0.85); }
 
@@ -221,32 +234,19 @@
         <h2 class="font-bold text-lg text-blue-800 mb-3">3. Stickers</h2>
         <p class="text-sm text-gray-600 mb-2">Click a sticker to add it to the canvas.</p>
         <div id="stickerPalette" class="grid grid-cols-4 gap-2">
-          <button class="sticker-thumb p-1 bg-white rounded border" data-src="https://twemoji.maxcdn.com/v/latest/72x72/1f389.png"><img src="https://twemoji.maxcdn.com/v/latest/72x72/1f389.png" alt="party" class="w-12 h-12" /></button>
-          <button class="sticker-thumb p-1 bg-white rounded border" data-src="https://twemoji.maxcdn.com/v/latest/72x72/1f381.png"><img src="https://twemoji.maxcdn.com/v/latest/72x72/1f381.png" alt="gift" class="w-12 h-12" /></button>
-          <button class="sticker-thumb p-1 bg-white rounded border" data-src="https://twemoji.maxcdn.com/v/latest/72x72/1f382.png"><img src="https://twemoji.maxcdn.com/v/latest/72x72/1f382.png" alt="cake" class="w-12 h-12" /></button>
-          <button class="sticker-thumb p-1 bg-white rounded border" data-src="https://twemoji.maxcdn.com/v/latest/72x72/1f496.png"><img src="https://twemoji.maxcdn.com/v/latest/72x72/1f496.png" alt="sparkling heart" class="w-12 h-12" /></button>
+          <!-- Use emoji-based stickers (no cross-origin images) -->
+          <button class="sticker-thumb p-1 bg-white rounded border" data-emoji="🎉"><div class="emoji" style="font-size:28px; text-align:center;">🎉</div></button>
+          <button class="sticker-thumb p-1 bg-white rounded border" data-emoji="🎁"><div class="emoji" style="font-size:28px; text-align:center;">🎁</div></button>
+          <button class="sticker-thumb p-1 bg-white rounded border" data-emoji="🍰"><div class="emoji" style="font-size:28px; text-align:center;">🍰</div></button>
+          <button class="sticker-thumb p-1 bg-white rounded border" data-emoji="💖"><div class="emoji" style="font-size:28px; text-align:center;">💖</div></button>
         </div>
 
-        <!-- Ad placeholder between sticker picker and sticker controls -->
+        <!-- Ad placeholder between sticker picker and sticker area -->
         <div class="mt-3 adsense-placeholder adsense-rect">
           Ad placeholder — Rectangle (replace with AdSense code)
         </div>
 
-        <!-- Sticker controls -->
-        <div id="stickerControls" class="mt-4 hidden space-y-2">
-          <p class="text-sm">Selected Sticker Controls</p>
-          <div class="flex items-center gap-2">
-            <label class="text-xs">Scale</label>
-            <input id="stickerScale" type="range" min="0.2" max="3" step="0.05" value="1" class="flex-1" />
-            <label class="text-xs">Rotate</label>
-            <input id="stickerRotate" type="range" min="-180" max="180" value="0" class="w-32" />
-          </div>
-          <div class="flex gap-2">
-            <button id="bringForward" class="px-3 py-1 bg-white rounded border">Bring Forward</button>
-            <button id="sendBack" class="px-3 py-1 bg-white rounded border">Send Back</button>
-            <button id="deleteSticker" class="px-3 py-1 bg-red-100 text-red-700 rounded border">Delete</button>
-          </div>
-        </div>
+        <!-- NOTE: sticker controls removed as requested -->
       </div>
 
       <!-- Quick Actions - REMOVED the writeup as requested (kept empty container to avoid layout shifts) -->
@@ -350,10 +350,10 @@
   <script>
   /************************************************************************
    * Wish Weaver — single-file app
-   * Fixes:
-   * - Ensure generate always creates output (robust handler + pre-export overlay update)
-   * - Make output watermark clickable and on-top
-   * - Keep other behavior/layout unchanged
+   * Changes:
+   * - Replace external-image stickers with emoji stickers to avoid CORS taint
+   * - Remove sticker-controls UI (kept sticker functions working)
+   * - Ensure generate/export works and output watermark is clickable
    ************************************************************************/
 
   // DOM references
@@ -376,12 +376,6 @@
   const subOverlay = document.getElementById('subOverlay');
   const stickerPalette = document.getElementById('stickerPalette');
   const stickerLayerContainer = document.getElementById('stickerLayerContainer');
-  const stickerControls = document.getElementById('stickerControls');
-  const stickerScale = document.getElementById('stickerScale');
-  const stickerRotate = document.getElementById('stickerRotate');
-  const deleteStickerBtn = document.getElementById('deleteSticker');
-  const bringForwardBtn = document.getElementById('bringForward');
-  const sendBackBtn = document.getElementById('sendBack');
 
   const inputs = {
     wishText: document.getElementById('wishText'),
@@ -544,7 +538,7 @@
     wishOverlay.style.top = '25%'; wishOverlay.style.left = '50%'; wishOverlay.style.transform = 'translate(-50%,-50%) rotate(0deg)';
     subOverlay.style.top = '80%'; subOverlay.style.left = '50%'; subOverlay.style.transform = 'translate(-50%,-50%) rotate(0deg)';
     stickerLayerContainer.innerHTML = '';
-    activeSticker = null; stickerControls.classList.add('hidden');
+    activeSticker = null;
 
     aspectRatio.value = '1:1';
     inputs.wishText.value = 'Happy Moments!';
@@ -588,23 +582,26 @@
     resizeCanvas();
   }
 
-  // sticker creation
-  function addSticker(src, left='50%', top='50%', scale=1, rotate=0) {
+  // sticker creation (emoji-based)
+  function addSticker(emoji, left='50%', top='50%', scale=1, rotate=0, fontSize=48) {
     const id = 'sticker_' + (++stickerCounter);
     const el = document.createElement('div');
     el.className = 'sticker-layer';
     el.dataset.layerId = id;
     el.style.left = left;
     el.style.top = top;
+    // store scale/rotate/fontsize via dataset so export can read them
+    el.dataset.scale = scale;
+    el.dataset.rotate = rotate;
+    el.dataset.fontsize = fontSize;
     el.style.transform = `translate(-50%, -50%) scale(${scale}) rotate(${rotate}deg)`;
     el.setAttribute('tabindex', '0');
 
-    const img = document.createElement('img');
-    img.src = src;
-    img.alt = 'sticker';
-    img.style.width = '96px';
-    img.style.height = 'auto';
-    el.appendChild(img);
+    const span = document.createElement('div');
+    span.className = 'emoji';
+    span.textContent = emoji;
+    span.style.fontSize = fontSize + 'px';
+    el.appendChild(span);
 
     stickerLayerContainer.appendChild(el);
     selectSticker(el);
@@ -614,55 +611,19 @@
   function selectSticker(el) {
     if (activeSticker) activeSticker.classList.remove('selected');
     activeSticker = el;
-    if (!el) { stickerControls.classList.add('hidden'); return; }
+    if (!el) { return; }
     el.classList.add('selected');
-    // parse transform: scale/rotate
-    const m = el.style.transform.match(/scale\((-?[0-9.]+)\)\s*rotate\((-?[0-9.]+)deg\)/);
-    const scale = m ? parseFloat(m[1]) : 1;
-    const rotate = m ? parseFloat(m[2]) : 0;
-    stickerScale.value = scale;
-    stickerRotate.value = rotate;
-    stickerControls.classList.remove('hidden');
+    // no sticker-controls UI (removed), selection simply highlights (css) and enables Delete key
   }
 
-  // sticker controls
-  stickerScale.addEventListener('input', () => {
-    if (!activeSticker) return;
-    const s = parseFloat(stickerScale.value);
-    const r = parseFloat(stickerRotate.value);
-    activeSticker.style.transform = `translate(-50%, -50%) scale(${s}) rotate(${r}deg)`;
-  });
-  stickerRotate.addEventListener('input', () => {
-    if (!activeSticker) return;
-    const s = parseFloat(stickerScale.value);
-    const r = parseFloat(stickerRotate.value);
-    activeSticker.style.transform = `translate(-50%, -50%) scale(${s}) rotate(${r}deg)`;
-  });
-  bringForwardBtn.addEventListener('click', () => {
-    if (!activeSticker) return;
-    const z = parseInt(activeSticker.style.zIndex || 3);
-    activeSticker.style.zIndex = z + 1;
-  });
-  sendBackBtn.addEventListener('click', () => {
-    if (!activeSticker) return;
-    const z = parseInt(activeSticker.style.zIndex || 3);
-    activeSticker.style.zIndex = Math.max(0, z - 1);
-  });
-  deleteStickerBtn.addEventListener('click', () => {
-    if (!activeSticker) return;
-    activeSticker.remove();
-    activeSticker = null;
-    stickerControls.classList.add('hidden');
-  });
-
-  // sticker palette click
+  // sticker palette click -> add emoji sticker
   document.querySelectorAll('#stickerPalette .sticker-thumb').forEach(btn => {
     btn.addEventListener('click', () => {
-      const src = btn.dataset.src;
+      const emoji = btn.dataset.emoji || '🎉';
       const existing = stickerLayerContainer.children.length;
       const left = 50 + (existing % 5) * 6;
       const top = 50 + Math.floor(existing / 5) * 6;
-      const st = addSticker(src, left + '%', top + '%', 1, 0);
+      const st = addSticker(emoji, left + '%', top + '%', 1, 0, 48);
       selectSticker(st);
     });
   });
@@ -680,7 +641,7 @@
       activeOverlay = target;
       saveHistory(activeOverlay);
       if (activeOverlay.classList.contains('sticker-layer')) selectSticker(activeOverlay);
-      else { if (activeSticker) { activeSticker.classList.remove('selected'); activeSticker = null; stickerControls.classList.add('hidden'); } }
+      else { if (activeSticker) { activeSticker.classList.remove('selected'); activeSticker = null; } }
       const parentRect = previewContainer.getBoundingClientRect();
       const leftPercent = percentOrDefault(activeOverlay.style.left, 50);
       const topPercent = percentOrDefault(activeOverlay.style.top, 50);
@@ -693,7 +654,7 @@
       activeOverlay.style.zIndex = 99;
     } else {
       // clicked outside overlays -> deselect sticker
-      if (activeSticker) { activeSticker.classList.remove('selected'); activeSticker = null; stickerControls.classList.add('hidden'); }
+      if (activeSticker) { activeSticker.classList.remove('selected'); activeSticker = null; }
     }
   }
 
@@ -747,6 +708,14 @@
   document.addEventListener('pointermove', pointerMoveHandler, { passive:false });
   document.addEventListener('pointerup', pointerUpHandler);
 
+  // Delete key for sticker removal
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Delete' && activeSticker) {
+      activeSticker.remove();
+      activeSticker = null;
+    }
+  });
+
   // image upload
   imageUpload.addEventListener('change', (ev) => {
     const file = ev.target.files && ev.target.files[0];
@@ -759,6 +728,7 @@
     const reader = new FileReader();
     reader.onload = function(evt) {
       uploadedImage = new Image();
+      // uploaded image is local data URL so no taint here
       uploadedImage.onload = function() {
         isImageLoaded = true;
         imagePlaceholder.style.display = 'none';
@@ -776,7 +746,7 @@
     reader.readAsDataURL(file);
   });
 
-  // export / generate final PNG (renders image, stickers, text into an offscreen canvas using chosen export DPI)
+  // export / generate final PNG (renders image, emoji-stickers, text into an offscreen canvas using chosen export DPI)
   function generateFinalImage() {
     try {
       if (!isImageLoaded) {
@@ -796,7 +766,6 @@
       exportCanvas.width = Math.round(cssW * exportScale);
       exportCanvas.height = Math.round(cssH * exportScale);
       const ectx = exportCanvas.getContext('2d', { alpha: false });
-      // set transform for high-res exports
       ectx.setTransform(exportScale, 0, 0, exportScale, 0, 0);
 
       // draw background image center-crop
@@ -807,7 +776,7 @@
       ectx.clearRect(0,0,cssW,cssH);
       ectx.drawImage(uploadedImage, x, y, tW, tH);
 
-      // draw stickers by z-index ascending
+      // draw stickers by z-index ascending (emoji-based)
       const stickerEls = Array.from(stickerLayerContainer.children);
       stickerEls.sort((a,b) => (parseInt(a.style.zIndex||3) - parseInt(b.style.zIndex||3)));
       stickerEls.forEach(el => {
@@ -869,7 +838,6 @@
       // show clickable watermark overlay above generated image
       if (outputWatermark) {
         outputWatermark.style.display = 'inline-block';
-        // ensure it opens in new tab
         outputWatermark.setAttribute('href', 'https://weaver.example.com');
         outputWatermark.setAttribute('target', '_blank');
         outputWatermark.setAttribute('rel', 'noopener');
@@ -916,6 +884,7 @@
   }
 
   function drawStickerOnExportCtx(ectx, el) {
+    // we now support emoji-based stickers (text). Draw the emoji on canvas.
     const cssW = canvas.width / dpr;
     const cssH = canvas.height / dpr;
     const left = percentOrDefault(el.style.left,50);
@@ -923,21 +892,27 @@
     const x = (left/100) * cssW;
     const y = (top/100) * cssH;
 
+    // read transform params
     const tr = el.style.transform || '';
     const m = tr.match(/scale\((-?[0-9.]+)\)\s*rotate\((-?[0-9.]+)deg\)/);
-    const scale = m ? parseFloat(m[1]) : 1;
-    const rotate = m ? parseFloat(m[2]) : 0;
-    const img = el.querySelector('img');
-    if (!img || !img.naturalWidth) return;
+    const scale = m ? parseFloat(m[1]) : (parseFloat(el.dataset.scale) || 1);
+    const rotate = m ? parseFloat(m[2]) : (parseFloat(el.dataset.rotate) || 0);
+    const fontSize = parseFloat(el.dataset.fontsize) || parseFloat((el.querySelector('.emoji')||{}).style.fontSize) || 48;
 
-    const cssImgWidth = parseFloat(img.style.width) || (img.naturalWidth * 0.15);
-    const cssImgHeight = cssImgWidth * (img.naturalHeight / img.naturalWidth);
+    const emojiEl = el.querySelector('.emoji');
+    if (!emojiEl) return;
+    const emoji = emojiEl.textContent || '';
 
     ectx.save();
     ectx.translate(x, y);
     ectx.rotate(rotate * Math.PI/180);
     ectx.scale(scale, scale);
-    ectx.drawImage(img, -cssImgWidth/2, -cssImgHeight/2, cssImgWidth, cssImgHeight);
+    // pick a font that supports emoji — system fallback will handle it
+    ectx.font = `${fontSize}px serif`;
+    ectx.textAlign = 'center';
+    ectx.textBaseline = 'middle';
+    // draw emoji - fill (no stroke needed)
+    ectx.fillText(emoji, 0, 0);
     ectx.restore();
   }
 
@@ -951,26 +926,18 @@
     if (st) selectSticker(st);
   });
 
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Delete' && activeSticker) {
-      activeSticker.remove();
-      activeSticker = null;
-      stickerControls.classList.add('hidden');
-    }
-  });
-
   // Save / Load designs
   saveButton.addEventListener('click', () => {
     const stickerNodes = Array.from(stickerLayerContainer.children).map(el => {
-      const img = el.querySelector('img');
+      const span = el.querySelector('.emoji');
       const left = el.style.left || '50%';
       const top = el.style.top || '50%';
       const tr = el.style.transform || '';
-      const m = tr.match(/scale\((-?[0-9.]+)\)\s*rotate\((-?[0-9.]+)deg\)/);
-      const scale = m ? parseFloat(m[1]) : 1;
-      const rotate = m ? parseFloat(m[2]) : 0;
+      const scale = parseFloat(el.dataset.scale) || 1;
+      const rotate = parseFloat(el.dataset.rotate) || 0;
+      const fontsize = parseFloat(el.dataset.fontsize) || (span ? parseFloat(span.style.fontSize || 48) : 48);
       const z = el.style.zIndex || 3;
-      return { src: img.src, left, top, scale, rotate, z };
+      return { emoji: span ? span.textContent : '🎉', left, top, scale, rotate, fontsize, z };
     });
     const state = {
       imageDataUrl: uploadedImage && uploadedImage.src ? uploadedImage.src : null,
@@ -1048,7 +1015,7 @@
       stickerLayerContainer.innerHTML = '';
       if (st.stickers && Array.isArray(st.stickers)) {
         st.stickers.forEach(s => {
-          const el = addSticker(s.src, s.left, s.top, s.scale, s.rotate);
+          const el = addSticker(s.emoji || '🎉', s.left, s.top, s.scale, s.rotate, s.fontsize || 48);
           el.style.zIndex = s.z || 3;
         });
       }
@@ -1067,7 +1034,7 @@
   });
 
   helpBtn.addEventListener('click', () => {
-    const msg = `Use Wish Weaver:\n\n1. Upload an image.\n2. Choose aspect ratio and DPI.\n3. Edit main and sub text, pick fonts, rotate, and add optional stroke.\n4. Add stickers from the picker (click to add). Select stickers to scale/rotate/delete.\n5. Drag text and stickers to position. Use arrow keys to nudge (Shift for larger steps).\n6. Click "GENERATE SHARABLE CARD" to export and get a downloadable PNG. All processing happens locally in your browser.`;
+    const msg = `Use Wish Weaver:\n\n1. Upload an image.\n2. Choose aspect ratio and DPI.\n3. Edit main and sub text, pick fonts, rotate, and add optional stroke.\n4. Add stickers from the picker (click to add). Select stickers to move or press Delete to remove.\n5. Drag text and stickers to position. Use arrow keys to nudge (Shift for larger steps).\n6. Click "GENERATE SHARABLE CARD" to export and get a downloadable PNG. All processing happens locally in your browser.`;
     alert(msg);
   });
 
@@ -1094,7 +1061,6 @@
     generateButton.textContent = 'Generating…';
     setTimeout(() => {
       try {
-        // ensure overlays updated and export runs
         updateTextOverlays();
         generateFinalImage();
       } catch (err) {
